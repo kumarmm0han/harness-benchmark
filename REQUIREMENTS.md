@@ -1,26 +1,28 @@
-# SOP System — Trimmed Demo Requirements
+# SOP System — Demo Requirements
 
-## 1. Baseline and outcome
+## 1. Scope and outcome
 
-This baseline replaces the broader MVP scope. Build a local demo in Java 21 / Spring Boot, React with TypeScript, and PostgreSQL, started with Docker Compose.
+Build a local demo in Java 21 / Spring Boot, React with TypeScript, and PostgreSQL, started with Docker Compose.
 
 Demonstrate one complete journey:
 
 **Author structured Markdown → validate → publish immutable canonical JSON → read the same published version in human and AI views.**
 
-`PRINCIPLES.md` defines engineering guardrails. This document defines required behavior; `spec.md` defines the supported content format and example. All three are frozen inputs during a harness run. Retained requirement IDs preserve their identity but their criteria below replace the previous baseline. Unlisted behavior is not required.
+`PRINCIPLES.md` defines engineering guardrails. This document defines required behavior; `spec.md` defines the supported content format and example. All three are frozen inputs during a harness run.
+
+Implement only the scope explicitly required here. Additional capabilities are outside this task.
 
 ## 2. Scope and fixed decisions
 
 - Two fixed local identities: `demo-author` and `demo-consumer`, selected visibly in the UI and sent via `X-Demo-User`. This is a labeled demo mechanism, not production authentication. The backend checks the identity on every API request.
 - Authors save drafts, validate, publish, and read. Consumers read published content only. Missing/unknown identity returns `401`; a consumer attempting an author operation receives `403`.
-- Publication is immediate. The server assigns consecutive positive integer versions per SOP, starting at 1. There is no authored version, effective date, approval state, or deprecation state.
-- There is one editable draft per SOP. Multi-user draft concurrency is deferred. A submitted publish names the exact saved draft revision; a stale revision returns `409`. Duplicate publication of the same revision returns `409`.
-- Supported risk values are `low` and `medium`, with `max_autonomy: assist` only. Unsupported values are validation errors; this demo does not implement high-risk, critical, regulatory, or autonomous workflows.
-- Rules use the small structured data format in `spec.md`. No expression engine, action execution, or external business integration is required or permitted.
-- Domain values are `Billing` and `Support`. Filter by domain and risk only, combined with AND; sort by `sop_id` ascending. No pagination or vocabulary management.
-- Reject unknown fields in the supported schema. Validation emits errors only, with stable ordering by source path then code. No warning publication policy is needed.
-- React renders human content from canonical JSON. No separate rendered-content backend endpoint is required.
+- Publication is immediate. The server assigns consecutive positive integer versions per SOP, starting at 1. Version and publication metadata are server-owned.
+- There is one editable draft per SOP. A submitted publish names the exact saved draft revision; a stale revision returns `409`. Duplicate publication of the same revision returns `409`.
+- Supported risk values are `low` and `medium`, with `max_autonomy: assist` only. Unsupported values are validation errors.
+- Rules use the small structured data format in `spec.md`. Never execute authored rules or actions, or perform external business actions.
+- Domain values are `Billing` and `Support`. Filter by domain and risk only, combined with AND; sort by `sop_id` ascending. Return all matching current SOPs.
+- Reject unknown fields in the supported schema. Validation emits errors only, with stable ordering by source path then code.
+- React renders human content from canonical JSON.
 
 ## 3. Functional requirements
 
@@ -60,11 +62,11 @@ An author publishes a saved draft by its revision. The backend revalidates that 
 
 ### FR-043 — Immutable versions
 
-Saving edits after publication changes the draft only. A subsequent successful publish creates the next version. Existing snapshots cannot be overwritten; an author can retrieve a specific published version for verification. No version-management UI is required.
+Saving edits after publication changes the draft only. A subsequent successful publish creates the next version. Existing snapshots cannot be overwritten; an author can retrieve a specific published version for verification.
 
 ### FR-045 — Preserve the previous publication
 
-When a saved newer draft fails publication validation, retain the previous current version. Persist a failure indicator for that draft revision and show the author that publication failed and the previous version remains available. Clear that indicator on a subsequent draft save or successful publish. If nothing has been published, consumer detail returns `404`; it never substitutes draft data. Revalidating or repairing corrupted historical snapshots at read time is deferred.
+When a saved newer draft fails publication validation, retain the previous current version. Persist a failure indicator for that draft revision and show the author that publication failed and the previous version remains available. Clear that indicator on a subsequent draft save or successful publish. If nothing has been published, consumer detail returns `404`; it never substitutes draft data.
 
 ### FR-050 — List and filter
 
@@ -72,7 +74,7 @@ List current published SOPs with ID, title, version, domain, and risk. Support d
 
 ### FR-052 — Human view
 
-Render policy, inputs, rules, actions, boundaries, and customer messages from the selected canonical snapshot. Show SOP identity and version. Render strings as text with raw HTML disabled; attachment and link rendering are outside scope. Labels must make clear that action and message content describes an SOP and does not report a real action executed by this app.
+Render policy, inputs, rules, actions, boundaries, and customer messages from the selected canonical snapshot. Show SOP identity and version. Render strings as text with raw HTML disabled. Labels must make clear that action and message content describes an SOP and does not report a real action executed by this app.
 
 ### FR-053 — AI JSON view
 
@@ -97,15 +99,15 @@ Use `/api/v1`. Provide these operations:
 
 Paths in this table are relative to `/api/v1`. Saving is allowed before content is valid; at publication, the parsed `sop_id` must match the draft path. Validation returns `200` even for content issues; malformed request envelopes return `400`. Successful saves and publishes return `200`.
 
-Document request/response shapes in the application README or an API document. Generated OpenAPI and exhaustive per-endpoint contract tests are deferred. Errors use `{code, message, issues}` with `issues: []` when no field issues apply. Use `400` for malformed requests/invalid filters, `401`/`403` for identity/permission failures, `404` for absent resources, `409` for revision conflicts, `413` for oversized source, and `422` for rejected publication content. Unexpected failures return a generic `500` without internals. Limit CORS to the configured local UI origin.
+Document request/response shapes in the application README or an API document. Errors use `{code, message, issues}` with `issues: []` when no field issues apply. Use `400` for malformed requests/invalid filters, `401`/`403` for identity/permission failures, `404` for absent resources, `409` for revision conflicts, `413` for oversized source, and `422` for rejected publication content. Unexpected failures return a generic `500` without internals. Limit CORS to the configured local UI origin.
 
 ### DR-001 — PostgreSQL persistence
 
-Persist editable source/revision, publication-failure indicators, published source/snapshots, and the current-version reference. Use migrations from an empty database and a named Compose volume. Transactions and database constraints enforce publication integrity. No review, approval, audit-event, or scheduled-activation tables are required.
+Persist editable source/revision, publication-failure indicators, published source/snapshots, and the current-version reference. Use migrations from an empty database and a named Compose volume. Transactions and database constraints enforce publication integrity.
 
 ### DR-003 — Deterministic seed
 
-An explicit demo profile seeds the duplicate-charge example as a saved draft. Repeated startup must not duplicate records or overwrite user edits. Demo identities are fixed configuration and need no user-management database. Use fictional data only.
+An explicit demo profile seeds the duplicate-charge example as a saved draft. Repeated startup must not duplicate records or overwrite user edits. Demo identities are fixed configuration. Use fictional data only.
 
 ## 5. Engineering and local operation
 
@@ -121,7 +123,7 @@ Use a safe YAML parser and enforce FR-020 limits. React must not execute authore
 
 Provide root-level `make verify`, `make demo`, and `make smoke` commands. `demo` starts the seeded Compose stack. `verify` runs backend build/unit tests, focused PostgreSQL integration tests, frontend tests, TypeScript checks, lint, and production build. `smoke` exercises the primary journey against Compose and exits nonzero on failure. Document any tools needed to run verification.
 
-Tests must cover safe parsing and reference failures, missing financial limits/escalation, identity enforcement, atomic publication and immutable versions, invalid replacement, and human/JSON consistency. Use PostgreSQL for database-specific behavior. Include representative hostile YAML and HTML-string cases. No separate public `eval` command or duplicated exhaustive suite is required.
+Tests must cover safe parsing and reference failures, missing financial limits/escalation, identity enforcement, atomic publication and immutable versions, invalid replacement, and human/JSON consistency. Use PostgreSQL for database-specific behavior. Include representative hostile YAML and HTML-string cases.
 
 ### NFR-050 — Demo usability
 
@@ -137,12 +139,6 @@ All required actions are discoverable in the UI, usable by keyboard, and communi
 | AC-E2E-004 | Save an invalid replacement, attempt publish, then correct and publish it | Failed attempt leaves version 1 current and reports failure to the author; corrected attempt publishes version 2; version 1 remains unchanged |
 | AC-E2E-005 | Start from a clean checkout with Docker, run the demo, and restart | Three healthy services, usable seed draft, successful author-to-consumer flow, retained drafts and publications |
 
-These are public task acceptance criteria. Independent benchmark scoring happens outside the harness run.
+## 7. Completion
 
-## 7. Explicit deferrals and traceability
-
-Deferred: review queues and approver/publisher roles; risk-tier approval/autonomy matrices; effective dates and deprecation; multi-user draft conflict handling; broad taxonomy/scope filters; audit trails; attachment support; performance SLAs; database-outage recovery scenarios; generated OpenAPI and exhaustive contract suites; production identity; external integrations; rule/action execution.
-
-Former requirements FR-002, FR-011–012, FR-022, FR-031, IR-002–003, DR-002, NFR-002, NFR-021, NFR-030, and NFR-040 are consolidated into the retained requirements above. FR-033, FR-040–041, FR-044, FR-051, FR-060, FR-070–071, NFR-010, and NFR-031 are removed as standalone obligations; retained subsets such as filtering and safe errors are stated explicitly above. The former EV-001–014 suite and acceptance journeys are superseded by section 6 and NFR-041. There are no release-blocking TBD policy choices in this baseline; ordinary code organization and library selection remain implementation decisions.
-
-Demo completion requires all retained requirements and the five journeys, passing applicable verification, and recorded actual outcomes in `VERIFICATION.md`. Deferred features earn no additional scope credit.
+Complete all requirements and the five acceptance journeys, pass applicable verification, and record actual outcomes in `VERIFICATION.md`. Code organization and library selection remain implementation decisions within these requirements and the engineering principles.

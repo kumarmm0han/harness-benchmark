@@ -1,6 +1,6 @@
 # SOP Demo — Supported Content Contract
 
-This document defines the template and canonical content for the trimmed demo in `REQUIREMENTS.md`. It replaces the earlier broad model, taxonomy, and approval/effective-date workflow. Only the fields below are supported; additional fields and sections are errors.
+This document defines the template and canonical content for the demo in `REQUIREMENTS.md`. Only the fields below are supported; additional fields and sections are errors.
 
 ## 1. Authoring format
 
@@ -14,7 +14,7 @@ A source document begins with YAML front matter between `---` delimiter lines, f
 - `Boundaries` — one YAML block containing an object
 - `Customer Messages` — one YAML block containing an object
 
-Blank lines are allowed. Prose sections support plain bullet text only; inline markup/HTML is retained as text, not interpreted. Machine sections contain exactly one fenced `yaml` block and no other nonblank content. There are no attachments, optional guidance sections, nested Markdown headings, or executable expressions.
+Blank lines are allowed. Prose sections support plain bullet text only; inline markup/HTML is retained as text, not interpreted. Machine sections contain exactly one fenced `yaml` block and no other nonblank content. Reject headings or content structures not defined here. Never execute authored content.
 
 Front matter requires `sop_id`, `title`, `owner_team`, `domain`, `intent`, `risk_level`, and `max_autonomy`, all strings. `sop_id` matches `[A-Z][A-Z0-9-]{0,63}`. Title and owner team are nonempty. Domains are `Billing` or `Support`; intents are `refund_duplicate_charge` or `answer_question`; risk levels are `low` or `medium`; max autonomy is `assist`. The refund intent requires domain `Billing`. Status, version, and timestamps are server metadata and cannot be authored.
 
@@ -32,7 +32,7 @@ Reject unknown keys at every object level, duplicate YAML keys, aliases, custom 
 | Escalation | `action_id`: existing refund action; `input`: declared numeric input; `op`: `gt`; `amount`: positive finite number; `target_action_id`: existing escalate action |
 | Customer messages | `primary` and `escalation`: nonempty strings |
 
-Rule/action identifiers match `[A-Za-z][A-Za-z0-9_-]{0,63}`. Require unique action IDs. A rule describes the conjunction of its conditions, but the app only validates and displays it. Rules remain in source order; there is no runtime rule selection, priority, routing, or no-match behavior.
+Rule/action identifiers match `[A-Za-z][A-Za-z0-9_-]{0,63}`. Require unique action IDs. A rule describes the conjunction of its conditions, but the app only validates and displays it. Preserve rules in source order for display.
 
 For `refund_duplicate_charge`, require exactly one refund action and an input named `refund_amount` of type `number`. At least one escalation boundary must name that refund action, use `refund_amount`, and have an amount equal to its `max_amount`, targeting an escalate action. Report a missing limit and missing escalation independently. `answer_question` allows human-assist/escalate actions but no refund actions; it has no financial-boundary requirement. This avoids bypassing financial validation by relabeling the intent.
 
@@ -147,6 +147,6 @@ Here `content` stands for the full mapped object described above, not an empty p
 3. Editor with template insertion, save, validate/preview, and publish actions. Publication uses the saved revision; the UI requires unsaved edits to be saved first.
 4. Human detail and JSON views using the same canonical snapshot.
 
-The lifecycle is save draft → validate/preview → publish immediately. Editing leaves the current publication unchanged; successful publication advances its integer version. Failed validation leaves the current version unchanged and reports the saved candidate failure to the author. There is no approval simulation, scheduling, notification, rule execution, or tool execution.
+The lifecycle is save draft → validate/preview → publish immediately. Editing leaves the current publication unchanged; successful publication advances its integer version. Failed validation leaves the current version unchanged and reports the saved candidate failure to the author. Never execute rules, tools, or external business actions.
 
-The normative API, error conventions, persistence behavior, verification commands, and five acceptance journeys are in `REQUIREMENTS.md`; do not infer additional scope from the former specification.
+The normative API, error conventions, persistence behavior, verification commands, and five acceptance journeys are in `REQUIREMENTS.md`.

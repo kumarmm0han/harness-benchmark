@@ -1,6 +1,6 @@
 # SOP System — Demo Engineering Principles
 
-This baseline supports the trimmed scope in `REQUIREMENTS.md` and the format in `spec.md`. It replaces the previous MVP guardrails and evaluation gates. During implementation these inputs are frozen; keep architecture, design, tasks, and code traceable to their IDs.
+These principles support the scope in `REQUIREMENTS.md` and the format in `spec.md`. During implementation these inputs are frozen; keep architecture, design, tasks, and code traceable to their IDs.
 
 ## PRN-001 — One canonical source
 
@@ -8,11 +8,11 @@ Business users author Markdown. Successful publication produces an immutable can
 
 ## PRN-002 — Complete the small journey
 
-Deliver template authoring, safe validation, immediate publication, and both consumer views. Follow the explicit deferrals in `REQUIREMENTS.md`. Do not add review workflows, scheduled activation, an expression engine, or production infrastructure. Implement the supported low/medium, assist-only content model; reject unsupported policy values.
+Deliver template authoring, safe validation, immediate publication, and both consumer views. Implement only the scope explicitly required in `REQUIREMENTS.md`. Implement the supported low/medium, assist-only content model; reject unsupported policy values.
 
 ## PRN-003 — Three-service local runtime
 
-Use React/TypeScript, Java 21/Spring Boot, and PostgreSQL under Docker Compose. Keep parsing, validation, publication, and querying inside one backend deployment. Use framework capabilities and dependencies with a concrete demo purpose; avoid speculative interfaces and layers. No queues, caches, workflow engines, cloud services, or external actions.
+Use React/TypeScript, Java 21/Spring Boot, and PostgreSQL under Docker Compose. Keep parsing, validation, publication, and querying inside one backend deployment. Use framework capabilities and dependencies with a concrete demo purpose; avoid speculative interfaces and layers.
 
 ## PRN-004 — Backend authority and untrusted content
 
@@ -32,7 +32,7 @@ One Compose command starts the three healthy services with safe local defaults a
 
 ## PRN-008 — Evidence proportional to scope
 
-Follow NFR-041 and the five acceptance journeys in `REQUIREMENTS.md`. Test meaningful behavior, including invalid input, permissions, version integrity, and consumer consistency. Do not delete legitimate failing tests or weaken checks to pass. Record actual commands, outcomes, assumptions, and limitations. Generated OpenAPI, exhaustive endpoint matrices, performance targets, and a separate public evaluation suite are outside this baseline.
+Follow NFR-041 and the five acceptance journeys in `REQUIREMENTS.md`. Test meaningful behavior, including invalid input, permissions, version integrity, and consumer consistency. Do not delete legitimate failing tests or weaken checks to pass. Record actual commands, outcomes, assumptions, and limitations.
 
 ## PRN-009 — Traceable implementation
 
