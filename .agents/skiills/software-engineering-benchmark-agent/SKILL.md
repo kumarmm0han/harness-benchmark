@@ -23,7 +23,7 @@ Each harness independently produces:
 5. tests
 6. `VERIFICATION.md`
 
-The goal is to measure how the harness affects architecture, planning, task decomposition, implementation, simplicity, testing, debugging, recovery, and requirement-to-code drift.
+Complete the engineering lifecycle and report the resulting implementation and verification evidence.
 
 ## Core experimental rule
 
@@ -110,10 +110,11 @@ Use a pattern only when it addresses a concrete design problem. When introducing
 
 ## Stage 3 — Task planning
 
-Produce `TASKS.md`.
+Produce `TASKS.md` and maintain it as the task tracker throughout implementation.
 
 Each task should include:
 - task ID such as `TASK-023`
+- status: `TODO`, `IN_PROGRESS`, `BLOCKED`, or `COMPLETED`
 - requirements/design IDs implemented
 - dependencies
 - concrete work
@@ -123,6 +124,7 @@ Example:
 
 ```markdown
 ### TASK-023 — Implement approval transition rules
+Status: TODO
 Implements: DES-011, REQ-007, REQ-009
 Depends on: TASK-018
 Work:
@@ -148,6 +150,19 @@ Implement according to this priority:
 If a lower-level artifact conflicts with a higher-level source, the higher-level source wins. Update the lower-level artifact and record the correction.
 
 Inspect relevant existing code before editing. Keep changes scoped. Preserve repository conventions when reasonable. Prefer clear code over clever code. Centralize business rules, avoid duplication, and add tests with behavior.
+
+### Task tracking and Git delivery
+
+Before implementation, identify the working Git branch and its remote destination. Use the branch assigned for the run; if none is assigned, create a dedicated working branch and use the configured remote. If the remote destination is missing or ambiguous, request that information rather than guessing.
+
+For every task:
+1. Set its status in `TASKS.md` to `IN_PROGRESS` when work begins.
+2. Implement the task and run its verification checks. Record actual outcomes in the task entry. Mark blocked work `BLOCKED` with the reason; do not mark unfinished or unverified work completed.
+3. Once the work and verification are complete, immediately mark the task `COMPLETED` in `TASKS.md` during implementation, rather than waiting until the end of the run.
+4. Commit the task's code, tests, related artifacts, and tracker update together. Include the task ID in the commit message and exclude unrelated changes.
+5. Push that commit to the working branch's remote destination after every completed task, before starting the next task. Confirm the push succeeded; do not batch all pushes at the end.
+
+If a commit or push fails, report the failure and resolve it before proceeding to the next task. Keep implementation status distinct from delivery status: completed code with a failed push must be reported as delivery pending, never as successfully pushed. Do not force-push or overwrite remote history to satisfy this workflow.
 
 ### Design drift
 
@@ -197,23 +212,6 @@ List every material assumption made due to ambiguity.
 
 Do not assume a specific harness API, agent name, memory system, planning mode, or subagent feature. A harness may use its native mechanisms internally, but the observable artifacts and lifecycle remain the same.
 
-## Benchmark fairness
-
-The benchmark controller should keep constant where practical:
-- model and model version
-- quantization
-- inference server
-- context window
-- sampling parameters
-- reasoning/thinking configuration
-- starter repository commit
-- requirements
-- principles
-- tool permissions
-- runtime versions
-- database/runtime dependencies
-- time budget
-
 ## Required output artifacts
 
 At completion, the repository must contain:
@@ -224,15 +222,6 @@ At completion, the repository must contain:
 - implementation
 - tests
 
-## Quality priorities
+## Completion
 
-1. correctness
-2. requirement adherence
-3. principle/guardrail adherence
-4. simplicity
-5. maintainability
-6. design quality
-7. test quality
-8. efficiency
-
-Do not trade correctness for elegance.
+Finish after delivering the required artifacts and reporting actual verification results and unresolved limitations.
