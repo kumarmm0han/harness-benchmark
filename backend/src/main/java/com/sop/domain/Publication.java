@@ -28,10 +28,10 @@ public class Publication {
   @Column(name = "source", nullable = false, columnDefinition = "text")
   private String source;
 
-  @Column(name = "content_json", nullable = false, columnDefinition = "jsonb")
+  @Column(name = "content_json", nullable = false, columnDefinition = "text")
   private String contentJson;   // canonical content, serialized
 
-  @Column(name = "envelope_json", nullable = false, columnDefinition = "jsonb")
+  @Column(name = "envelope_json", nullable = false, columnDefinition = "text")
   private String envelopeJson;  // {sop_id, version, published_at, content}
 
   @Column(name = "published_at", nullable = false)

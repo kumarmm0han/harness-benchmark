@@ -3,6 +3,7 @@ package com.sop.service;
 import com.sop.api.ApiException;
 import com.sop.api.ErrorCode;
 import com.sop.domain.Contract;
+import com.sop.domain.Content;
 import com.sop.domain.Draft;
 import com.sop.domain.DraftRepository;
 import com.sop.domain.Envelope;
@@ -11,9 +12,11 @@ import com.sop.domain.PublicationRepository;
 import com.sop.domain.SopCurrent;
 import com.sop.domain.SopCurrentRepository;
 import com.sop.dto.Issue;
+import com.sop.service.ValidationService.Outcome;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,22 +27,25 @@ import java.util.List;
 /**
  * Atomic immediate publication (DES-008b, FR-042 / FR-043 / FR-045).
  *
- * <p>Single transaction:
- * <ol>
- *   <li>fetch the saved draft (404 if absent).</li>
- *   <li>compare the requested revision with the stored revision (409 STALE).</li>
- *   <li>re-validate the EXACT saved source (never a client-supplied one).</li>
- *   <li>if invalid: set the failure indicator on the draft, persist, then 422
- *       with the issue list (FR-045 / FR-034).</li>
- *   <li>advisory lock keyed by sop_id (PRN-006, DES-002).</li>
- *   <li>next version = max+1 (read under the lock).</li>
- *   <li>insert the immutable (source, content, envelope, version) row.</li>
- *   <li>upsert the sop_current pointer.</li>
- *   <li>clear the failure indicator.</li>
- * </ol>
+ * <p>Publishing is split across short transactions so that the FR-045 failure
+ * indicator durably survives the 422 response, while every publication write
+ * stays atomic:
  *
- * <p>Any exception rolls all writes back; the unique (sop_id, draft_revision)
- * constraint is the final backstop for duplicate publishes (409).
+ * <ol>
+ *   <li>Non-transactional orchestration in {@link #publish}: fetch the saved
+ *       draft (404 if absent), stale-revision check (409), and re-validation of
+ *       the EXACT saved source (never a client-supplied one) in that order.</li>
+ *   <li>Failed publish: {@link #recordPublishFailure(String)} commits
+ *       {@code publish_failed_at = now()} in its own transaction, then the
+ *       orchestrator returns 422 with the issue list. No publication write was
+ *       attempted, so the current pointer is untouched (FR-042 / FR-045).</li>
+ *   <li>Successful publish: {@link #commitPublish(String, Long, Content)}
+ *       performs everything in a single transaction — advisory lock keyed by
+ *       sop_id (serialized per SOP, PRN-006), next version = max+1, immutable
+ *       snapshot insert, {@code sop_current} upsert, indicator cleared. The
+ *       unique (sop_id, draft_revision) constraint turns a duplicate publish of
+ *       the same revision into a 409. Any exception rolls all writes back.</li>
+ * </ol>
  */
 @Service
 public class PublishService {
@@ -52,22 +58,24 @@ public class PublishService {
   private final ValidationService validation;
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
+  private final PublishService self;
 
   public PublishService(DraftRepository drafts,
                         PublicationRepository publications,
                         SopCurrentRepository currents,
                         ValidationService validation,
                         JdbcTemplate jdbc,
-                        ObjectMapper mapper) {
+                        ObjectMapper mapper,
+                        @Lazy PublishService self) {
     this.drafts = drafts;
     this.publications = publications;
     this.currents = currents;
     this.validation = validation;
     this.jdbc = jdbc;
     this.mapper = mapper;
+    this.self = self;
   }
 
-  @Transactional
   public Envelope publish(String sopId, Long requestedRevision) {
     if (requestedRevision == null) {
       throw new ApiException(ErrorCode.MALFORMED, "`revision` is required to publish");
@@ -85,41 +93,67 @@ public class PublishService {
 
     // Re-validate the EXACT saved source (IR-001 "The backend revalidates that
     // source"; PRN-004 backend authority).
-    ValidationService.Outcome outcome = validation.validate(draft.source());
+    Outcome outcome = validation.validate(draft.source());
     if (!outcome.valid()) {
-      // FR-045: persist the failure indicator, leave current unchanged.
-      draft.setPublishFailedAt(Instant.now());
-      drafts.save(draft);
+      // FR-045: the indicator must survive the 422, so it commits in its own
+      // transaction before the error is returned.
+      self.recordPublishFailure(sopId);
       throw new ApiException(ErrorCode.VALIDATION_FAILED,
           "saved draft fails validation; current publication is unchanged",
           outcome.issues());
     }
 
-    Envelope envelope = new Envelope(sopId, null, null, outcome.content());
+    // The envelope sop_id must equal the draft path sop_id (FR-021 / IR-001).
+    if (!sopId.equals(outcome.content().sopId())) {
+      self.recordPublishFailure(sopId);
+      throw new ApiException(ErrorCode.VALIDATION_FAILED,
+          "content.sop_id does not match the draft sop_id",
+          List.of(Issue.semantic(Contract.C_SOP_ID_MISMATCH,
+              "content.sop_id must equal the draft sop_id", "content.sop_id")));
+    }
 
-    // Concurrency: serialize publishers of the same SOP (DES-002, PRN-006).
+    return self.commitPublish(sopId, requestedRevision, outcome.content());
+  }
+
+  /**
+   * Persists the FR-045 failure indicator for the draft revision in its own
+   * transaction so it survives the 422 response the caller then generates.
+   */
+  @Transactional
+  public void recordPublishFailure(String sopId) {
+    drafts.findById(sopId).ifPresent(d -> d.setPublishFailedAt(Instant.now()));
+  }
+
+  /**
+   * The atomic publication (DES-008b / FR-042). All-or-nothing: any exception
+   * (including the duplicate-revision constraint violation, which the handler
+   * maps to 409 PUBLICATION_CONFLICT) rolls back every write.
+   */
+  @Transactional
+  public Envelope commitPublish(String sopId, Long requestedRevision, Content content) {
+    Draft draft = drafts.findById(sopId)
+        .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND,
+            "no saved draft exists for sop_id `" + sopId + "`"));
+    if (draft.revision() != requestedRevision) {
+      throw new ApiException(ErrorCode.STALE_REVISION,
+          "draft revision " + requestedRevision
+              + " is stale (the saved revision is " + draft.revision() + ")");
+    }
+
+    // Concurrency: serialize publishers of the same sop_id (DES-002, PRN-006).
+    // Different sop_ids never block each other.
     acquireAdvisoryLock(sopId);
 
     int nextVersion = publications.nextVersionFor(sopId);
     Instant publishedAt = Instant.now();
-    envelope = new Envelope(sopId, nextVersion, publishedAt.toString(), outcome.content());
-
-    // The envelope sop_id must equal the draft path sop_id (FR-021 / IR-001).
-    if (!sopId.equals(envelope.sopId())) {
-      draft.setPublishFailedAt(Instant.now());
-      drafts.save(draft);
-      throw new ApiException(ErrorCode.VALIDATION_FAILED,
-          "content.sop_id does not match the draft sop_id",
-          List.of(Issue.semantic(com.sop.domain.Contract.C_SOP_ID_MISMATCH,
-              "content.sop_id must equal the draft sop_id", "content.sop_id")));
-    }
+    Envelope envelope = new Envelope(sopId, nextVersion, publishedAt.toString(), content);
 
     Publication publication = new Publication();
     publication.setSopId(sopId);
     publication.setVersion(nextVersion);
     publication.setDraftRevision(draft.revision());
     publication.setSource(draft.source());
-    publication.setContentJson(toJson(outcome.content()));
+    publication.setContentJson(toJson(content));
     publication.setEnvelopeJson(toJson(envelope));
     publication.setPublishedAt(publishedAt);
     publications.save(publication);
@@ -131,10 +165,7 @@ public class PublishService {
     currents.save(current);
 
     // Successful publish clears the failure indicator (FR-045).
-    if (draft.publishFailedAt() != null) {
-      draft.setPublishFailedAt(null);
-      drafts.save(draft);
-    }
+    draft.setPublishFailedAt(null);
 
     log.info("published sop_id={} version={}", sopId, nextVersion);
     return envelope;
@@ -195,23 +226,15 @@ public class PublishService {
     return new com.sop.dto.SopSummary(env.sopId(), title, current.version(), domain, risk);
   }
 
-  /**
-   * Acquire a transaction-scoped advisory lock keyed by the sop_id hash
-   * (DES-002, PRN-006 — "ordinary database coordination, not distributed locking").
-   *
-   * <p>{@code hashtext(sop_id)} is a stable 32-bit hash. Postgres auto-widens
-   * int4 to the bigint that {@code pg_advisory_xact_lock} requires. The lock
-   * is released automatically when the surrounding transaction ends.
-   *
-   * <p>Two publishers of the same sop_id are serialized; different sop_ids never
-   * block each other. Duplicate (sop_id, draft_revision) is the SQL constraint
-   * backstop that turns a race into a 409.
-   */
   private void acquireAdvisoryLock(String sopId) {
-    // `update` here is the "execute and ignore results" overload — it happily
-    // runs a SELECT-returning function and is not affected by the JDBC "no
-    // results" restriction on `queryForObject`.
-    jdbc.update("SELECT pg_advisory_xact_lock(hashtext(?))", sopId);
+    // Acquire a transaction-scoped advisory lock keyed by the sop_id hash
+    // (DES-002, PRN-006 — "ordinary database coordination, not distributed
+    // locking"). Postgres auto-widens the int4 returned by hashtext to the
+    // bigint that pg_advisory_xact_lock expects. Released at transaction end.
+    jdbc.queryForObject(
+        "SELECT pg_advisory_xact_lock(hashtext(?))",
+        new Object[]{sopId},
+        Object.class);
   }
 
   private String toJson(Object o) {

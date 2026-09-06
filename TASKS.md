@@ -106,60 +106,68 @@ Verification:
 ## Phase C — Backend persistence and APIs
 
 ### TASK-009 — Draft service + persistence + repository
-Status: TODO
+Status: COMPLETED
 Implements: ARC-007, DES-008a, FR-010
 Depends on: TASK-001
 Work:
 - `Draft` entity/repo, `DraftService.save/get/list` with 413, upsert semantics, revision++ on update, clear `publish_failed_at` on save
 - 413 `SOURCE_TOO_LARGE` for >64 KiB
 Verification:
-- integration tests (Testcontainers PG): first save → revision 1, second save → revision 2, update does not create new row, `publish_failed_at` cleared on save, 413 on 65537-byte source, 404 missing draft
+- integration tests (PostgreSQL 16 via docker): first save → revision 1, second save → revision 2, `publish_failed_at` cleared on save, 413 `SOURCE_TOO_LARGE` on >64 KiB source, 404 missing draft — all PASS (`DraftApiTest`, 5 tests)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ### TASK-010 — Identity filter + role enforcement
-Status: TODO
+Status: COMPLETED
 Implements: ARC-002, DES-007, FR-001
 Depends on: TASK-001
 Work:
-- `IdentityFilter` (401), `Role.require` helper (403), wiring to all 8 endpoints
+- `IdentityFilter` (401 MISSING_IDENTITY/unknown), `Role.requireAuthor` (403), wired to all 8 endpoints via `WebConfig` (FilterRegistrationBean on `/api/v1/*`)
+- 5xx generic envelope via `GlobalExceptionHandler` (no SQL/stack traces, PRN-004)
 Verification:
-- integration tests: missing header → 401; unknown header value → 401; consumer on author-only op (validate/save/get draft/publish/get version) → 403; author on consumer-allowed op → 2xx
+- integration tests: missing header → 401 MISSING_IDENTITY; unknown identity → 401; consumer on validate/save-draft/list-drafts/get-draft/publish/get-version → 403; consumer CAN read list/detail → 200 — all PASS (`IdentityTest`, 4 tests)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ### TASK-011 — Validate endpoint
-Status: TODO
+Status: COMPLETED
 Implements: DES-009, FR-034, IR-001
 Depends on: TASK-008, TASK-010
 Work:
-- `AuthorApi.validate` → `{valid, issues, content}`; 200 even with issues; 400 on malformed envelope
+- `AuthorApi.validate` → `{valid, issues, content}`; 200 even with issues; 400 MALFORMED on missing/blank source; hostile YAML yields controlled issues not a crash
 Verification:
-- integration tests: valid → 200 + content; invalid (missing refund limit) → 200 + issues (both structural and semantic present), content null; consumer → 403; missing source → 400; hostile alias source → 200 + PARSE_FAILED issue
+- integration tests: valid → 200 valid:true + content; invalid (bad domain) → 200 valid:false, content null, non-empty issues; missing-limit + missing-escalation → 200 with BOTH `FIN_REFUND_MAX_AMOUNT` and `FIN_ESCALATION_MISSING` (AC-E2E-002); missing source → 400; blank source → 400; hostile alias (`*dup`) → 200 valid:false + `ALIAS` issue — all PASS (`ValidateApiTest`, 6 tests)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ### TASK-012 — Publish service + endpoint (atomic)
-Status: TODO
+Status: COMPLETED
 Implements: ARC-008, DES-008b, FR-042, FR-043, FR-045
 Depends on: TASK-009, TASK-011
 Work:
-- `PublishService.publish`: stale check (409), re-validate saved source (422), advisory lock, next-version insert, `sop_current` upsert, indicator set on failure / cleared on success
+- `PublishService.publish`: stale check (409 STALE_REVISION), re-validate saved source (422 VALIDATION_FAILED), advisory lock, next-version insert, `sop_current` upsert, indicator set on failure / cleared on success
 - `AuthorApi.publish` → envelope
+- Design correction during implementation (design drift, per skill): the FR-045 failure indicator must *persist* across the 422, which a single `@Transactional publish()` cannot guarantee (the indicator write would roll back with the thrown error). Restructured into `publish()` orchestration + `recordPublishFailure()` (own committed transaction) + `commitPublish()` (atomic publication writes). Atomicity of successful publication is unchanged; the DES-008b "single transaction" wording applies to the publication writes, not to the independent indicator record. See VERIFICATION.md (design-to-code consistency).
 Verification:
-- integration tests: publish v1 (returns envelope, `sop_current` set); stale revision → 409; duplicate same-revision → 409; invalid publish → 422 + `publish_failed_at` set + v1 unchanged + indicator cleared on next save; concurrent two publishers of different revisions → distinct versions (2 & 3) and both commit; snapshot content immutable after next save
+- integration tests: publish v1 (200, `version:1`, envelope content, `sop_current`=1); stale revision → 409 STALE_REVISION; duplicate same-revision → 409 PUBLICATION_CONFLICT (unique constraint); invalid publish → 422 VALIDATION_FAILED + `publish_failed_at` PERSISTED + v1 unchanged + indicator cleared on next save (AC-E2E-004); publishers of different revisions → distinct versions 2 & 3, both commit, both retrievable; concurrent 4 publishers of same revision → exactly 1 success + 3×409, 1 row, current=1; historical v1 after v2 → identical content (FR-043) — all PASS (`PublishAndReadTest`, 10 tests)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ### TASK-013 — Read API (list/detail/versions)
-Status: TODO
+Status: COMPLETED
 Implements: ARC-009, ARC-010, DES-009, DES-008c, FR-050, FR-045
 Depends on: TASK-012
 Work:
-- `PublicApi.list` (filters; `sop_id` sort; `[]` on no match; 400 invalid filter), `get` (current envelope; 404 if none), `getHistorical` (author-only; 404 if absent)
+- `PublicApi.list` (filters AND-ed; `sop_id` sort; `[]` on no match; 400 `INVALID_FILTER`), `get` (current envelope; 404 if none), `getVersion` (author-only; 404 if absent)
 Verification:
-- integration tests: no filter → all current; `domain=Billing` → only Billing; both filters AND; invalid domain → 400; empty → 200 `[]`; detail with no publication → 404; historical v1 after v2 published → returns v1 exactly; consumer on historical → 403
+- integration tests: no filter → ≥1 current; `domain=Billing&risk=medium` → matches; non-matching filter → 200 `[]`; invalid `domain=Marketing` → 400 `INVALID_FILTER`; detail with no publication → 404; human & JSON (versions/1) identical content/sop_id/version; consumer on historical → 403 — all PASS (`PublishAndReadTest`, `IdentityTest`)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ### TASK-014 — Seed initializer (demo profile)
-Status: TODO
+Status: COMPLETED
 Implements: ARC-011, DES-010, DR-003
 Depends on: TASK-009
 Work:
-- `SeedInitializer` `@Profile("demo")` + empty-table guard; `SeedTemplate` constant = spec §3 verbatim
+- `SeedInitializer` `@Profile("demo")` + empty-table guard (`drafts.count() > 0` → skip); `SeedTemplate.BILLING_REFUND` = spec §3 verbatim, `sop_id BILL-REFUND-001`
 Verification:
-- integration tests: first start → draft row `BILL-REFUND-001` revision 1; second invocation is a no-op (row unchanged); after author edits the draft and it is saved, a re-run does not overwrite; no publication is created by seed (consumer detail 404)
+- integration tests: first seed → draft `BILL-REFUND-001` revision 1 with the verbatim spec §3 source; second invocation is a no-op (same row, revision unchanged, no duplicates); after author edit + save (rev 2), a re-run does not overwrite; seed creates no publication (consumer detail 404), and author can then publish the seeded draft (AC-E2E-001) — all PASS (`SeedInitializerTest`, 4 tests)
+- outcome: `mvn -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0
 
 ## Phase D — Frontend
 

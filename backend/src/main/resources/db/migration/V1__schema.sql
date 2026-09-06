@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS publications (
   version         integer        NOT NULL CHECK (version >= 1),
   draft_revision  bigint         NOT NULL,
   source          text           NOT NULL,
-  content_json    jsonb          NOT NULL,
-  envelope_json   jsonb          NOT NULL,
+  content_json    text           NOT NULL,
+  envelope_json   text           NOT NULL,
   published_at    timestamptz    NOT NULL,
   PRIMARY KEY (sop_id, version),
   CONSTRAINT uq_publications_draft_revision UNIQUE (sop_id, draft_revision)

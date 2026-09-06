@@ -381,7 +381,13 @@ Supports: ARC-002, FR-001, IR-001, NFR-020, PRN-004.
 9. Clear `drafts.publish_failed_at` (a successful publish clears the indicator per FR-045).
 10. Return the stored envelope (read back from `publications` so the client sees exactly what was stored — PRN-001).
 
-Atomicity: a single transaction wraps steps 2–10. Any exception rolls back all writes. Advisory lock serializes concurrent publishers of the same SOP; the unique `(sop_id, draft_revision)` constraint is the backstop.
+Atomicity: a single transaction wraps the publication writes (steps 4–9: lock, next-version, insert, upsert, clear). Any exception rolls back all publication writes. Advisory lock serializes concurrent publishers of the same SOP; the unique `(sop_id, draft_revision)` constraint is the backstop.
+
+> **Implementation correction (design-drift record, TASK-012).** The original text described `publish()` as one `@Transactional` method. The FR-045 requirement that the failure indicator **persist** after the 422 is thrown is impossible inside a single transaction whose error rolls work back — `PublishServiceTest` (AC-E2E-004) proved the indicator was rolled back. The implementation is therefore split:
+> - `publish(sopId, revision)` — non-transactional orchestration: 404/stale checks (steps 1–2), re-validation (step 3a), and the `sop_id` match (step 6);
+> - `recordPublishFailure(sopId)` — `@Transactional`: commits `publish_failed_at = now()` (step 3) so the FR-045 indicator survives the 422;
+> - `commitPublish(sopId, revision, content)` — `@Transactional`: the atomic publication (steps 4–9).
+> The atomic-success guarantee (FR-042: "a failed, duplicate, or stale publish cannot create partial versions or change the current pointer") is unchanged and is what "single transaction" refers to; the failure-indicator record is an independent committed write, as FR-045 requires. Both `recordPublishFailure` and `commitPublish` are invoked through the Spring proxy (self-injection) so each opens its own transaction.
 
 ### DES-008c — ReadService (ARC-009 / ARC-010)
 - `list(domain, risk)`: `SELECT` from `sop_current` joined with `publications` filtered by `domain`/`risk` (the columns are stored inside `content_json`; to keep the WHERE clause in SQL, promote `content.jsonb->>'…'`: query via `envelope_json->'content'->>'domain'`). Filter: each present filter is AND-ed. Sort by `sop_id` ascending. Return `sop_id, title, version, domain, risk`. If no filter is present, return all.
