@@ -13,7 +13,7 @@ Each completed task is committed and pushed before the next starts. Delivery sta
 ## Phase A — Foundation
 
 ### TASK-001 — Scaffold backend buildable skeleton
-Status: TODO
+Status: COMPLETED
 Implements: DES-000, DES-011 (config skeleton)
 Depends on: (stage 3)
 Work:
@@ -52,7 +52,7 @@ Verification:
 ## Phase B — Backend core (deterministic pipeline)
 
 ### TASK-004 — SafeYAML loader (alias/depth/finite/tag/finite)
-Status: TODO
+Status: COMPLETED
 Implements: DES-003, FR-020, NFR-020
 Depends on: TASK-001
 Work:
@@ -62,7 +62,7 @@ Verification:
 - unit tests: scalar alias rejected, list alias rejected, `*` inside a string NOT rejected, 22-level nested list rejected, 20-level accepted, `.inf`/`.nan`/`1e400` rejected, custom tag rejected, duplicate key rejected, `BigInteger` accepted, nested `map>list>map` accepted
 
 ### TASK-005 — SectionParser (front-matter + section split)
-Status: TODO
+Status: COMPLETED
 Implements: DES-004, FR-020, FR-021
 Depends on: TASK-004
 Work:
@@ -72,7 +72,7 @@ Verification:
 - unit tests: valid template → 7 sections + front-matter; missing front-matter → issue; duplicate heading → issue; unknown heading → issue; `#` / `###` in body → issue; machine section with 0 or 2 yaml blocks → issue; prose section with non-bullet line → issue
 
 ### TASK-006 — Front-matter + type + reference validators
-Status: TODO
+Status: COMPLETED
 Implements: DES-001, DES-005 (front-matter/type/reference), FR-030, PRN-005
 Depends on: TASK-005
 Work:
@@ -82,7 +82,7 @@ Verification:
 - unit tests cover: unknown front-matter key, missing front-matter key, bad enum (domain/risk/intent/autonomy), `sop_id` bad format, refund-domain mismatch, unknown field in input/rule/action/escalation, wrong value type, boolean `gt`, missing input ref, missing action ref, duplicate input/rule/action id, no inputs/rules/actions, empty required text
 
 ### TASK-007 — Financial safety validator (FR-032)
-Status: TODO
+Status: COMPLETED
 Implements: ARC-005, FR-032, DES-005 (financial)
 Depends on: TASK-006
 Work:
@@ -93,7 +93,7 @@ Verification:
 - unit tests: valid template → no FIN issues; missing refund action → `FIN_REFUND_MISSING`; missing/zero/negative `max_amount` → `FIN_REFUND_MAX_AMOUNT`; missing `refund_amount` input → `FIN_REFUND_AMOUNT_INPUT`; missing escalation → `FIN_ESCALATION_MISSING`; wrong amount (`!= max_amount`) → `FIN_ESCALATION_BOUND`; answer_question + refund action → semantic violation
 
 ### TASK-008 — CanonicalBuilder + pipeline orchestration
-Status: TODO
+Status: COMPLETED
 Implements: ARC-006, DES-005, DES-006, FR-021
 Depends on: TASK-004..007
 Work:

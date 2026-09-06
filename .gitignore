@@ -1,0 +1,19 @@
+# Build output
+target/
+node_modules/
+dist/
+dist_prod/
+.mvn/
+.m2/
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
+
+# Local env
+.env
