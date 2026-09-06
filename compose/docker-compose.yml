@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sop
+      POSTGRES_PASSWORD: sop          # local-only; never in source outside compose
+      POSTGRES_DB: sop
+    ports:
+      - "5433:5432"
+    volumes:
+      - sop_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sop -d sop"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  backend:
+    build:
+      context: ../backend
+      target: runtime
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/sop"
+      SPRING_DATASOURCE_USERNAME: sop
+      SPRING_DATASOURCE_PASSWORD: sop
+      APP_CORS_ALLOWED_ORIGIN: "http://localhost:8075"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  frontend:
+    build:
+      context: ../frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8075:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/healthz || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  sop_pgdata:
