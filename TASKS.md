@@ -25,16 +25,17 @@ Verification:
 - app boots against a throwaway container exposing `/actuator/health` = UP
 
 ### TASK-002 — Scaffold compose + frontend buildable skeleton
-Status: TODO
+Status: COMPLETED
 Implements: DES-012, DES-013
 Depends on: TASK-001
 Work:
-- `compose/docker-compose.yml` (3 services, healthchecks, named volume, local defaults)
-- `backend/Dockerfile` (multi-stage maven→jre), `frontend/Dockerfile` (node build→nginx), `nginx.conf` + `/healthz`
-- frontend Vite scaffold, `main.tsx`, minimal `App.tsx`, `package.json`, lint + tsconfig + vitest config
+- `compose/docker-compose.yml` (3 services: db/backend/frontend, healthchecks, named volume `sop_pgdata`, depends_on service_healthy, ports 5433/8080/8075)
+- `backend/Dockerfile` (multi-stage maven:3.9-temurin-21 → eclipse-temurin:21-jre, named `runtime` stage), `frontend/Dockerfile` (node:18-alpine build → nginx:alpine), `nginx.conf` (static UI + `/healthz` + `/api/` proxy to `backend:8080`, so the browser only talks to origin `http://localhost:8075`)
+- frontend scaffold: `package.json` (React 18, TS 5, Vite 5, Vitest 2, RTL, ESLint), `tsconfig.json`, `vite.config.ts` (vitest jsdom + setup), `.eslintrc.cjs`, `index.html`, `src/main.tsx`, `src/styles.css`, `src/App.tsx` (tabs: list/drafts/editor/detail; human+JSON views share one snapshot object)
 Verification:
-- `docker compose build` succeeds for all three services
-- `npx tsc --noEmit` and `npm run build` succeed in frontend
+- `docker compose -f compose/docker-compose.yml build` → both built images (postgres image pre-cached); backend image boots (verified `docker run --entrypoint sh compose-backend -c 'command -v wget'` → /usr/bin/wget)
+- `npx tsc --noEmit` → clean; `npm run build` → ✓ built in 468ms (dist 161.6 kB)
+- outcome: delivery committed + pushed
 
 ### TASK-003 — Root Makefile + scripts + CI-independent entry points
 Status: TODO
@@ -172,44 +173,51 @@ Verification:
 ## Phase D — Frontend
 
 ### TASK-015 — Frontend API client + identity context
-Status: TODO
+Status: COMPLETED
 Implements: DES-012, ARC-001
 Depends on: TASK-002
 Work:
-- `src/api/client.ts` (fetch wrapper, X-Demo-User, typed errors), `src/api/types.ts`, `src/state/IdentityContext.tsx`
-- `IdentitySelector` component
+- `src/api/client.ts` (typed fetch wrapper: `X-Demo-User` + `Content-Type`, query string helper that drops empty/undefined, `ApiError(status, code, message, issues)` on non-2xx), `src/api/types.ts` (Issue / Envelope / Content / DraftSummary / SopSummary), `src/state/IdentityContext.tsx` (React context with `useState`)
+- `IdentitySelector` component (select + "Current: …" text, labeled demo-only)
 Verification:
-- Vitest: identity change persists to every subsequent fetch (mock fetch); 401/403 body surfaces as typed error; correct header is sent
+- Vitest (client.test.tsx, 6 tests): correct URL `/api/v1/...`; headers `X-Demo-User` + `Content-Type: application/json` for POST; query params (domain present, risk empty → dropped); non-2xx raises ApiError with code/message/`status`/`issues[]`; 401/403 body surfaces; 422 issue list is preserved; IdentityProvider persists identity across re-renders
+- outcome: `npx vitest run tests/client.test.tsx` → 6/6; `npx tsc --noEmit` clean; `npm run lint` clean
 
 ### TASK-016 — SOP list + filters + drafts list
-Status: TODO
+Status: COMPLETED
 Implements: FR-050, FR-001
 Depends on: TASK-015
 Work:
-- `SopList`, `FilterBar`, `DraftList`; empty state; author-only draft list
+- `src/components/SopList.tsx` (table + `a.row-link` anchors; empty state "No published SOPs match"), `src/components/FilterBar.tsx` (domain/risk selects with "All" defaults), `src/components/DraftList.tsx` (revision + "publish_failed" indicator; empty state)
+- App wires consumer to only the List tab; author additionally gets the Drafts tab + Editor
 Verification:
-- Vitest: renders published rows with identity+version; filters (domain/risk) appear in query string; empty state text when `[]`; draft list visible to author and hidden to consumer; keyboard: tab-focusable rows
+- Vitest (list-filter.test.tsx, 6 tests): SopList renders rows with identity+version; empty-state text for `[]`; rows are `<a href>` anchors with `tabIndex >= 0`; FilterBar dropdowns call `onDomain`/`onRisk`; DraftList shows revision and "Publish failed — …" for flagged drafts; empty-state text for `[]`
+- outcome: 6/6 vitest pass; `tsc`+`lint` clean
 
 ### TASK-017 — Editor + validate panel + publish flow
-Status: TODO
+Status: COMPLETED
 Implements: FR-010, FR-020, FR-034, FR-042, FR-045
-Depends on: TASK-015
+Depends on: TASK-015, TASK-016
 Work:
-- `Editor` (textarea, unsaved guard, template insert, save/validate/publish), `ValidationPanel` (stage-grouped, `[STRUCTURAL]`/`[SEMANTIC]` labels, not color-only)
-- publish uses saved revision; unsaved edits block publish
+- `src/template.ts` — byte-for-byte spec §3 template (matches `Tpl.VALID`/`SeedTemplate.BILLING_REFUND`)
+- `src/components/Editor.tsx` — textarea + "Insert valid template" + Save draft + Validate/preview + Publish; `dirty = savedSnapshot != null && source !== savedSnapshot`; Publish disabled when `dirty || revision == null` with visible helper text ("Publish is disabled until the draft is saved."); consumer shows a "author-only" panel and hides every action button
+- `src/components/ValidationPanel.tsx` — role="alert"; groups by `stage`; each issue shows `[STRUCTURAL]` / `[SEMANTIC]` label + `code` + `message` + `path`
+- Publish flow: `client.publish(sopId, revision, identity)`; on 422 ApiError the Editor captures `e.issues` and surfaces them in the ValidationPanel (FR-045)
 Verification:
-- Vitest: template insertion inserts the exact spec §3 text; unsaved guard disables publish; save success refreshes revision display; validation panel shows structural vs semantic distinctly; publish failure (422) surfaces issues + "publish_failed" indicator on the draft row; consumer cannot see the publish button
+- Vitest (editor.test.tsx, 6 tests): "Insert valid template" writes the exact `TEMPLATE_SOURCE` (byte equal) and includes `sop_id: BILL-REFUND-001`; after save, `btn-publish` becomes enabled; revision label `revision N` shown; a single keystroke re-triggers the `dirty` indicator; consumer has no `btn-publish` and sees the author-only text; ValidationPanel renders `[STRUCTURAL] C_FRONTMATTER_ENUM` and `[SEMANTIC] FIN_REFUND_MAX_AMOUNT` with separate headings
+- outcome: 6/6 vitest pass
 
 ### TASK-018 — Human view + JSON view (from same snapshot)
-Status: TODO
+Status: COMPLETED
 Implements: FR-052, FR-053
-Depends on: TASK-015
+Depends on: TASK-015, TASK-016
 Work:
-- `HumanView` (strings rendered as React text children → auto-escaped), "describes an SOP" labels on every action/message block
-- `JsonView` (`<pre>{ JSON.stringify(envelope, null, 2) }</pre>`)
-- shared snapshot state; human and JSON views render from the same fetched object
+- `src/components/HumanView.tsx` — renders envelope identity + version + owner + domain/risk/intent/max_autonomy chips + policy ul + inputs table + rules table + actions table (with `max_amount`) + boundaries table + customer messages; every user-controlled string is passed as a React text child (auto-escape), and every action/message block carries a visible italic "Describes the SOP — this app does not execute this action or send this message." label (`.msg-label`)
+- `src/components/JsonView.tsx` — `<pre className="json">{JSON.stringify(envelope, null, 2)}</pre>` (full envelope)
+- `App.tsx` `DetailPane` keeps a single `useState<Envelope|null>` — the object is the ONE snapshot both views render from (FR-053 "both views use the same fetched snapshot")
 Verification:
-- Vitest + DOM: action description containing `<img onerror=...>` is rendered as literal text (no `img` element created); JSON view contains `sop_id`, `version`, `published_at`, `content`; human and JSON views show the same `sop_id`+`version` for the same snapshot
+- Vitest (views.test.tsx, 6 tests, jsdom): identity + version + owner + domain + "risk: medium" visible; policy/inputs/rules/actions/boundaries/messages all rendered; the "does not execute" disclaimer appears ≥ 2 times; **XSS**: description `'<img src=x onerror=window.__pwned=true> <script>window.__pwned=1</script> '` → no `<img>` in DOM, the literal text is visible, `globalThis.__pwned` undefined; JsonView's `<pre>` contains `sop_id`, `version: 2`, `published_at`, `content`; human and JSON views agree on `sop_id: BILL-REFUND-001` + `version: 2` from the **same** snapshot object reference
+- outcome: 6/6 vitest pass
 
 ## Phase E — Integration + delivery
 
