@@ -288,7 +288,7 @@ Outcome:
 Outcome: pending.
 
 ### TASK-014 — `make smoke` against Compose
-Status: TODO
+Status: COMPLETED
 Implements: NFR-041, PRN-008, DES-401 (smoke)
 Depends on: TASK-009, TASK-010, TASK-011
 Work:
@@ -297,7 +297,29 @@ Work:
 - run against `make demo` stack; record outcome
 Verification:
 - `make smoke` exit 0; output saved to VERIFICATION.md
-Outcome: pending.
+Outcome:
+- `tests/smoke.sh` (wired to the existing `make smoke` target) exercises the
+  primary journey over HTTP against the running Compose stack, through the UI
+  origin proxy by default (`BASE` overridable to hit :8080 directly):
+  1. UI origin reachable (HTTP 200)
+  2. author `POST /validate` → `valid: true`, 0 issues
+  3. author `PUT /drafts/SMOKE-001` → saved revision reported
+  4. author `POST /sops/SMOKE-001/publish {revision}` → 200; envelope
+     `sop_id` equals `content.sop_id`
+  5. consumer `GET /sops?domain=Billing&risk=medium` → contains the exact
+     sop_id + version just published (filter AND semantics)
+  6. consumer `GET /sops/SMOKE-001` → same version, readable title
+  7. author `GET .../versions/{v}` → 200 same snapshot; consumer → 403
+  8. no `X-Demo-User` → 401; consumer `PUT /drafts/…` → 403
+- Idempotent: re-run saves a fresh revision and publishes the next version;
+  verified green on consecutive runs (versions 1→4, 5)
+- 409 / 413 paths are covered by backend integration tests
+  (`PublicationApiTest`: stale 409 + duplicate 409; `ContentValidationTest`
+  / `DraftApiTest`: 413 oversized) since smoke asserts the happy primary path
+- Recording found unsupported HTTP methods fell through to the generic 500;
+  added a `405 method-not-allowed` mapping in `ApiExceptionHandler` with a
+  regression test (`unsupportedMethodIs405`) verified over HTTP; backend suite
+  re-run green (83 tests), README status conventions updated with 405
 
 ### TASK-015 — Acceptance journeys + VERIFICATION.md
 Status: TODO

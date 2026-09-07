@@ -88,6 +88,16 @@ class IdentityAndErrorApiTest extends AbstractPostgresSpringTest {
     }
 
     @Test
+    @DisplayName("unknown method on a known path -> 405, normalized body")
+    void unsupportedMethodIs405() {
+        ResponseEntity<Map> res =
+                rest.exchange("/api/v1/sops", HttpMethod.POST, new HttpEntity<>(AUTHOR), Map.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(res.getBody()).containsEntry("code", "method-not-allowed");
+        assertThat(res.getBody().get("issues")).isEqualTo(List.of());
+    }
+
+    @Test
     @DisplayName("unknown /api path -> 404 normalized body")
     void unknownApiPathIs404() {
         ResponseEntity<Map> res = rest.exchange("/api/v1/nope", HttpMethod.GET, new HttpEntity<>(CONSUMER), Map.class);

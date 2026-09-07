@@ -102,7 +102,7 @@ All requests require `X-Demo-User`. Errors share one shape: `{"code": "...", "me
 | `GET /sops/{sop_id}` | either | — | `200 {"sop_id", "version", "content"}` (current canonical snapshot); `404` when nothing published (drafts are never substituted) |
 | `GET /sops/{sop_id}/versions/{version}` | author | — | `200 {"sop_id", "version", "published_revision", "published_at", "content"}` (immutable snapshot); `404` missing version |
 
-Status code conventions: `400` malformed request / invalid filters, `401` missing/unknown identity, `403` identity lacks permission, `404` absent resource, `409` revision conflict (stale or duplicate publication), `413` oversized source (limit 64 KiB), `422` rejected publication content, `500` generic (no internals). Successful saves and publishes return `200`.
+Status code conventions: `400` malformed request / invalid filters, `401` missing/unknown identity, `403` identity lacks permission, `404` absent resource, `405` unsupported method, `409` revision conflict (stale or duplicate publication), `413` oversized source (limit 64 KiB), `422` rejected publication content, `500` generic (no internals). Successful saves and publishes return `200`.
 
 Issue objects: `{"code", "stage": "structural"|"semantic", "message", "path"}` — sorted by `path` then `code`, deterministic for identical sources.
 
