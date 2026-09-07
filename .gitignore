@@ -1,0 +1,21 @@
+# Java / Maven
+backend/target/
+*.class
+*.jar
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+node_modules/
+*.local
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs & OS
+*.log
+.DS_Store
+.qwen/worktrees/
