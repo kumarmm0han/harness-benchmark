@@ -154,7 +154,7 @@ A `OncePerRequestFilter` on `/api/v1/**` reads `X-Demo-User`. Missing/unknown �
 
 ### DES-207 — CORS
 Supports: IR-001, NFR-020
-CORS limited to the single configured local UI origin (default `http://localhost:3000`, overridable via env `SOP_CORS_ORIGIN`) with the needed methods/headers; everything else disallowed. Requests through the nginx proxy are same-origin and rely on the proxy rather than CORS.
+CORS limited to the single configured local UI origin (default `http://localhost:3010`, overridable via env `SOP_CORS_ORIGIN`) with the needed methods/headers; everything else disallowed. Requests through the nginx proxy are same-origin and rely on the proxy rather than CORS.
 
 ### DES-208 — Deterministic seed
 Supports: DR-003, PRN-007, ARC-007

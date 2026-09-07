@@ -103,6 +103,7 @@ Java 21 (Temurin), Spring Boot 3, SnakeYAML (safe loader), Flyway, PostgreSQL 16
 2. **Publish mismatch status**: `spec.md` says parsed `sop_id` must equal the draft path; it does not fix the status when they differ. **Assumption**: `422` (rejected publication content), consistent with IR-001's "422 for rejected publication content".
 3. **Healthcheck semantics**: "services with health checks" (NFR-001) does not mandate an HTTP probe; the backend uses an HTTP probe from inside the container (curl is installed for that one purpose), the frontend and database use their standard probes.
 4. **Node version for the UI build**: 20 LTS (Vite baseline); not fixed by any requirement.
+5. **Host port for the UI**: the spec fixes no port; this run's host already occupies `3000`, so the demo UI is exposed on `http://localhost:3010` (backend `http://localhost:8080`). CORS is configured for that origin.
 
 ## Requirement traceability (summary)
 

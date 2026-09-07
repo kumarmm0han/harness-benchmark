@@ -1,0 +1,57 @@
+name: sopdemo
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sopdemo
+      POSTGRES_USER: sopdemo
+      # Local-only demo credential, documented as a safe default (NFR-020)
+      POSTGRES_PASSWORD: sopdemo
+    volumes:
+      - sop-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sopdemo -d sopdemo']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    ports:
+      - '5432:5432'
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: sopdemo
+      DB_USER: sopdemo
+      DB_PASSWORD: sopdemo
+      SOP_CORS_ORIGIN: http://localhost:3010
+      # `demo` profile enables the deterministic seed draft (DR-003)
+      SPRING_PROFILES_ACTIVE: demo
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "exec 3</dev/tcp/127.0.0.1/8080" || exit 1']
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+    ports:
+      - '8080:8080'
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:80/']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '3010:80'
+
+volumes:
+  sop-pg:

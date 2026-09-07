@@ -1,0 +1,12 @@
+# Java / Maven
+backend/target/
+*.class
+*.jar
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Local tool state
+.env
+.DS_Store

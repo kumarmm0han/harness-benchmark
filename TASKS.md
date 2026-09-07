@@ -22,7 +22,7 @@ Verification:
 Outcome: docs committed as `TASK-001`.
 
 ### TASK-002 — Repo skeleton: Compose runtime, backend shell, frontend shell
-Status: TODO
+Status: COMPLETED
 Implements: ARC-008, DES-101 (build), NFR-001, PRN-003, PRN-007
 Depends on: TASK-001
 Work:
@@ -34,7 +34,11 @@ Work:
 Verification:
 - `make demo` from this tree reaches 3 `healthy` containers
 - backend responds on `:8080`, frontend on `:3000`, Flyway applies V1
-Outcome: pending.
+Outcome:
+- `make demo` → "All 3 services healthy." (db/backend/frontend all `healthy`); backend responds on `:8080`, frontend HTML served on `:3010` (port assumption recorded in ARCHITECTURE.md: host `:3000` already occupied)
+- Flyway V1 applied: `drafts`, `sops`, `sop_versions` tables present; named volume `sopdemo_sop-pg` created
+- local quality gates: `cd backend && mvn -q test` exit 0; `cd frontend && npm run typecheck && npm test && npm run lint && npm run build` all pass (1 test green, placeholder shell)
+- note: UI placeholder page replaced in TASK-011
 
 ### TASK-003 — Identity, authorization, CORS, error handling
 Status: TODO

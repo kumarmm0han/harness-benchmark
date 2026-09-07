@@ -1,0 +1,20 @@
+# SOP demo backend configuration (values come from Compose / host env in production use)
+spring:
+  application:
+    name: sopdemo
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sopdemo}
+    username: ${DB_USER:sopdemo}
+    password: ${DB_PASSWORD:sopdemo}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+sop:
+  # Fixed local demo identities (FR-001, DR-003). Not production authentication.
+  author-identity: ${SOP_AUTHOR_IDENTITY:demo-author}
+  consumer-identity: ${SOP_CONSUMER_IDENTITY:demo-consumer}
+  # CORS limited to the one configured local UI origin (IR-001)
+  cors-origin: ${SOP_CORS_ORIGIN:http://localhost:3010}
+  # Hard source-size limit in UTF-8 bytes (FR-020): 64 KiB
+  max-source-bytes: 65536
