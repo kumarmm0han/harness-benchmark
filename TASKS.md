@@ -139,7 +139,7 @@ Outcome:
 - test infrastructure fix: integration tests now share one JVM-scoped PostgreSQL (static start, `@DynamicPropertySource`) so the Spring context cache never points at a container the Testcontainers extension already stopped — `DraftApiTest` (10 cases) + full suite `mvn test` → `Tests run: 66, Failures: 0, Errors: 0`
 
 ### TASK-009 — Publication service + read model
-Status: TODO
+Status: COMPLETED
 Implements: DES-203, DES-204, FR-042, FR-043, FR-045, ARC-005, ARC-006
 Depends on: TASK-007, TASK-008
 Work:
@@ -148,7 +148,23 @@ Work:
 - integration tests: invalid publish leaves v1, stale→409, duplicate→409, concurrent (2 threads) → exactly one version increments, v1 immutable, mismatch `sop_id`→422, consumer mutation→403, human/JSON same row
 Verification:
 - all branches covered; no partial rows after concurrent failures
-Outcome: pending.
+Outcome:
+- `publish/PublicationService` + `publish/PublicationTx`: validate → check → single-transaction write phase
+  (`SELECT … FOR UPDATE` row lock serializes concurrent publishes; re-check under lock; next-version insert;
+  pointer upsert; flag clear). `UNIQUE(sop_id, source_revision)` and PK `(sop_id, version)` are the
+  final guard — violation 23505 → 409 `duplicate-publication` (FR-042, ARC-006, PRN-006)
+- failure branches: no draft → 404 `draft-not-found`; stale revision → 409 `stale-revision`;
+  invalid content → 422 `publication-rejected` with sorted issues + `publish_failed` set (previous
+  version retained, FR-045); sop_id mismatch → 422 `sop-id-mismatch`
+- `POST /api/v1/sops/{sop_id}/publish` (author) → 200 `{sop_id, version, content}` where content is
+  the stored canonical snapshot (FR-042)
+- `sop/SopController`: list with fixed `domain`∈{Billing,Support} / `risk`∈{low,medium} filters
+  (invalid → 400), `ORDER BY sop_id` (FR-050); current snapshot identical for author/consumer
+  (FR-053); unpublished → 404 `sop-not-found`, never draft data (FR-045);
+  `GET …/versions/{version}` author-only (FR-043), 404 `version-not-found`
+- `PublicationApiTest` (9) incl. 2-thread concurrent publish (exactly one 200 + one 409, exactly one
+  version row) and immutable v1 after v2; `ReadApiTest` (5) incl. filter semantics and role separation
+- `mvn test` → `Tests run: 80, Failures: 0, Errors: 0` (two consecutive stable runs)
 
 ### TASK-010 — Deterministic seed (demo profile)
 Status: TODO
