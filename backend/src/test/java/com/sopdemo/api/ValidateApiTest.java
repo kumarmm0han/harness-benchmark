@@ -159,9 +159,10 @@ class ValidateApiTest extends AbstractPostgresSpringTest {
     @Test
     @DisplayName("validation is read-only: it creates no draft rows (FR-034)")
     void validateDoesNotPersistState() {
+        Integer before = jdbc.queryForObject("SELECT count(*) FROM drafts", Integer.class);
         post(Map.of("source", Fixtures.validRefundDoc()), AUTHOR);
         post(Map.of("source", docMissingLimitAndEscalation()), AUTHOR);
-        Integer rows = jdbc.queryForObject("SELECT count(*) FROM drafts", Integer.class);
-        assertThat(rows).isZero();
+        Integer after = jdbc.queryForObject("SELECT count(*) FROM drafts", Integer.class);
+        assertThat(after).isEqualTo(before);
     }
 }
