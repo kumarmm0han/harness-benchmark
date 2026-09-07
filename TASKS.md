@@ -231,7 +231,7 @@ Outcome:
   401, CORS allows :3010 and rejects other origins
 
 ### TASK-012 — README (startup, journeys, shutdown, data removal, API doc)
-Status: TODO
+Status: COMPLETED
 Implements: NFR-001, PRN-007, IR-001 (documented contract)
 Depends on: TASK-011
 Work:
@@ -240,7 +240,30 @@ Work:
 - full API table with request/response shapes (mirrors IR-001)
 Verification:
 - README self-consistent with the implemented endpoints; no invented behavior
-Outcome: pending.
+Outcome:
+- README.md written: URLs table (UI :3010, API /api/v1 via :8080 or the
+  UI proxy, Postgres :5432 w/ documented local-only credential);
+  identity selector + fixed demo identities (DR-003) + the X-Demo-User header
+  contract and 401/403 semantics (FR-001)
+- Quickstart `make demo` and the required tooling for `make verify` (Docker,
+  JDK 21, Maven, Node 22; Testcontainers for backend integration tests)
+- The five acceptance journeys (AC-E2E-001..005) written as concrete UI steps
+  with the exact issue codes to expect (refund-limit-missing,
+  refund-escalation-missing), including the restart/data-retention journey
+- Shutdown (`make stop`, retained volume) and explicit data removal
+  (`make clean-data`)
+- `make verify` / `make smoke` descriptions
+- Full API reference: per-endpoint access level, request, success envelope,
+  status-code conventions (400/401/403/404/409/413/422), uniform error shape
+  `{code,message,issues}` (IR-001), issue-object shape + deterministic ordering,
+  and the real, stable issue-code list (verified against `content/Codes.java`
+  and the publication conflict codes) — no invented behavior
+- Security/safety notes: labeled local-only identity, content-engine hard
+  limits, no execution of authored rules/actions, Postgres integrity +
+  atomic publication (row lock + UNIQUE(sop_id,version) /
+  UNIQUE(sop_id,source_revision)), CORS limited to the local UI origin
+- Repository map tying the layout to the frozen inputs (PRINCIPLES/REQUIREMENTS
+  /spec) and the implementation record (ARCHITECTURE/TECHNICAL_DESIGN/TASKS)
 
 ### TASK-013 — `make verify` fully green (recorded)
 Status: TODO
