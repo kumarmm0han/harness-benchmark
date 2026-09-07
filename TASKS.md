@@ -57,7 +57,7 @@ Outcome:
 - testcontainers needed 1.21.4 for Docker Engine 29 (API ≥ 1.44); recorded in `pom.xml`
 
 ### TASK-004 — Safe YAML loader and section parser
-Status: TODO
+Status: COMPLETED
 Implements: DES-103, DES-104, FR-020, PRN-004, NFR-020
 Depends on: TASK-002
 Work:
@@ -67,10 +67,13 @@ Work:
 - unit tests incl. hostile YAML (alias, tag, deep nest, duplicate key, NaN/Inf, non-finite string-as-numerics), bad section ordering, missing section, extra H2, empty bullet list, multi-block machine section
 Verification:
 - unit suite green; every hostile case returns a controlled `Issue`, never throws past the engine
-Outcome: pending.
+Outcome:
+- new: `content/{Issue,Codes,SourceLimits,SourceTooLargeException,YamlSafe,ParsedDoc,SectionParser}.java` + tests `content/{YamlSafeTest,SectionParserTest}.java` + `Fixtures` (spec §3-compliant refund + answer documents)
+- `mvn -q test` → `Tests run: 49, Failures: 0, Errors: 0` (YamlSafeTest 8/8, SectionParserTest 9/9; alias/custom-tag/duplicate-key/deep-nest/NaN/Inf all return controlled issues; depth-20 accepted, depth-21 rejected without StackOverflowError)
+- design note: "reject aliases" implemented as an event pass that rejects *any* alias reference (scalar or collection), stronger than SnakeYAML's built-in non-scalar counter
 
 ### TASK-005 — Structural validation (fields, enums, types, unknowns)
-Status: TODO
+Status: COMPLETED
 Implements: DES-102, DES-105, FR-021, FR-030 (structural part), spec §1–2
 Depends on: TASK-004
 Work:
@@ -81,10 +84,13 @@ Work:
 Verification:
 - spec.md valid template parses to `valid=true` with no issues
 - each structural rule has a failing test
-Outcome: pending.
+Outcome:
+- `content/StructuralValidator.java` enforces the full spec §2 table (required fields, unknown-field rejection at every object level, enums, value types, `max_amount` only on refund, `sop_id`/`name`/`id` charsets) with paths `frontmatter.*`, `inputs[i].*`, `rules[i].conditions[c].*`, `actions[i].*`, `boundaries.escalation[i].*`, `customer_messages.*`
+- issue codes centralized in `content/Codes.java` (PRN-005); sorting by (path, code) in the engine
+- covered by `ContentValidationTest` structural cases (missing/unknown front-matter field, invalid enum, malformed sop_id, non-string value, unknown input field, max_amount misuse) — all green within `Tests run: 49, Failures: 0`
 
 ### TASK-006 — Semantic validation + central financial safety
-Status: TODO
+Status: COMPLETED
 Implements: DES-106, DES-105 (semantic), FR-030, FR-032, PRN-005
 Depends on: TASK-005
 Work:
@@ -93,7 +99,10 @@ Work:
 - unit tests: each semantic rule incl. financial missing-limit / missing-escalation / both; `answer_question` with refund action rejected
 Verification:
 - `make`-equivalent `mvn -q test` green; spec §3 "removing the refund limit or escalation" produces the two readable issues
-Outcome: pending.
+Outcome:
+- `content/{SemanticValidator,FinancialSafety,Compiler,ContentEngine}.java` — semantic stage runs only after structural pass; all discovered issues returned (FR-034), sorted by (path, code)
+- financial invariants centralized in `FinancialSafety` keyed by intent: `REFUND_LIMIT_MISSING` and `REFUND_ESCALATION_MISSING` emitted independently (both fire when both are absent); `answer_question` + refund action → `REFUND_NOT_ALLOWED`; `refund_duplicate_charge` on non-Billing domain → `REFUND_INTENT_REQUIRES_BILLING`
+- `ContentValidationTest` covers: duplicate ids, bad references (condition input, action_ids, boundary target), boolean+`gt` mismatch, empty input list, boundary not-targeting-escalate, boundary amount ≠ max_amount, both financial errors at once, deterministic ordering — `mvn -q test` → `Tests run: 49, Failures: 0, Errors: 0`
 
 ### TASK-007 — `POST /validate` API + content preview
 Status: TODO
