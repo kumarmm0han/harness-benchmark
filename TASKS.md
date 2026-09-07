@@ -8,8 +8,8 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 |---|---|---|---|---|
 | TASK-001 | COMPLETED | ARC-001, PRN-003, PRN-007 | — | backend scaffold + build |
 | TASK-002 | COMPLETED | DES-002/003, FR-020/021, PRN-001/004/005, NFR-020 | 001 | safe YAML + Markdown parse + canonical model |
-| TASK-003 | IN_PROGRESS | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
-| TASK-004 | TODO | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
+| TASK-003 | COMPLETED | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
+| TASK-004 | IN_PROGRESS | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
 | TASK-005 | TODO | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
 | TASK-006 | TODO | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | TODO | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
@@ -46,7 +46,7 @@ Verification: `mvn -q -B test` green — 26 tests (SafeYamlTest, ParsingServiceT
 Outcome: PASS.
 
 ### TASK-003 — Validation engine (structural / semantic / financial)
-Status: IN_PROGRESS
+Status: COMPLETED
 Implements: DES-004, DES-005, DES-006, FR-030, FR-032, FR-034, PRN-005, NFR-020
 Depends on: TASK-002
 Work:
@@ -55,11 +55,11 @@ Work:
 - `FinancialSafety` (FR-032, independent, centralized): refund intent ⇒ exactly one refund + positive `max_amount`; `refund_amount` numeric input; ≥1 escalation boundary {action_id,input,op,amount==limit,target escalate}; emit `FINANCIAL_MISSING_LIMIT` and `FINANCIAL_MISSING_ESCALATION` **independently**; `FINANCIAL_AMOUNT_MISMATCH`; `ANSWER_QUESTION_REFUND` forbids refunds.
 - `ValidationService` orchestrates: parse → compile → structural → (semantic refs ∪ financial) ; stable ordering; content null when any issue.
 - Unit tests (FR-030/032/034), incl. "separate readable safety issues", semantic-skipped-on-structural-failure, answer_question + no refunds, stability and determinism.
-Verification: `mvn -q -B test` green (all `*Test` unit incl. new Validation*/Financial*/ValidationService* tests).
-Outcome: PENDING.
+Verification: `mvn -q -B test` green — 58 tests (SafeYamlTest, ParsingServiceTest, CompileServiceTest, HealthControllerTest, StructuralValidatorTest, ReferenceValidatorTest, FinancialSafetyTest, ValidationServiceTest), 0 failures.
+Outcome: PASS.
 
 ### TASK-004 — Persistence + identity + draft API + seed
-Status: TODO
+Status: IN_PROGRESS
 Implements: DES-007/008/010/015, DR-001, DR-003, FR-001, FR-010, PRN-006, PRN-007
 Depends on: TASK-003
 Work:
