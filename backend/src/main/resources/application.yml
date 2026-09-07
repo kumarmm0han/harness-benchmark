@@ -10,6 +10,7 @@ spring:
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
+    property-naming-strategy: SNAKE_CASE
 
 # Demo-only configuration (labeled, not production) — FR-001, DES-012.
 sopdemo:
