@@ -6,7 +6,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after it passe
 
 | ID | Status | Implements | Depends on | Focus |
 |---|---|---|---|---|
-| TASK-001 | IN_PROGRESS | ARC-001, PRN-003, PRN-007 | — | backend scaffold + build |
+| TASK-001 | COMPLETED | ARC-001, PRN-003, PRN-007 | — | backend scaffold + build |
 | TASK-002 | TODO | DES-002/003, FR-020/021, PRN-001/004/005, NFR-020 | 001 | safe YAML + Markdown parse + canonical model |
 | TASK-003 | TODO | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
 | TASK-004 | TODO | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |

@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: sopdemo
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/sopdemo}
+    username: ${SPRING_DATASOURCE_USERNAME:sopdemo}
+    password: ${SPRING_DATASOURCE_PASSWORD:sopdemo}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+
+# Demo-only configuration (labeled, not production) — FR-001, DES-012.
+sopdemo:
+  identities:
+    authors: [demo-author]
+    consumers: [demo-consumer]
+  cors:
+    allow-origin: ${SOPDEMO_CORS_ALLOW_ORIGIN:http://localhost:13000}
+  seed:
+    enabled: ${SOPDEMO_SEED_ENABLED:false}
+  source:
+    max-bytes: 65536   # FR-020: 64 KiB UTF-8 hard limit
+    max-yaml-nesting: 20
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-stacktrace: never
+    include-exception: false
+
+logging:
+  level:
+    root: INFO
+    com.sopdemo: INFO
