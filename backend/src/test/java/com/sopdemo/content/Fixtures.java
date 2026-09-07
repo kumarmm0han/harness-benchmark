@@ -1,12 +1,12 @@
 package com.sopdemo.content;
 
 /** Shared valid fixture documents (spec.md section 4 shape). */
-final class Fixtures {
+public final class Fixtures {
 
     private Fixtures() {
     }
 
-    static String validRefundDoc() {
+    public static String validRefundDoc() {
         return """
                 ---
                 sop_id: BILL-001
@@ -87,7 +87,7 @@ final class Fixtures {
                 """;
     }
 
-    static String validAnswerDoc() {
+    public static String validAnswerDoc() {
         return """
                 ---
                 sop_id: SUP-ANSWER

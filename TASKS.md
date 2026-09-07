@@ -104,17 +104,22 @@ Outcome:
 - financial invariants centralized in `FinancialSafety` keyed by intent: `REFUND_LIMIT_MISSING` and `REFUND_ESCALATION_MISSING` emitted independently (both fire when both are absent); `answer_question` + refund action → `REFUND_NOT_ALLOWED`; `refund_duplicate_charge` on non-Billing domain → `REFUND_INTENT_REQUIRES_BILLING`
 - `ContentValidationTest` covers: duplicate ids, bad references (condition input, action_ids, boundary target), boolean+`gt` mismatch, empty input list, boundary not-targeting-escalate, boundary amount ≠ max_amount, both financial errors at once, deterministic ordering — `mvn -q test` → `Tests run: 49, Failures: 0, Errors: 0`
 
-### TASK-007 — `POST /validate` API + content preview
-Status: TODO
+### TASK-007 — `POST /api/v1/validate` API + content preview
+Status: COMPLETED
 Implements: DES-107, DES-205, IR-001, FR-034, FR-020
 Depends on: TASK-006, TASK-003
 Work:
 - controller wiring `ContentEngine`; 200 for content issues, 400 for malformed envelope, 401/403 identity
-- 413 for oversized source (both validate and later draft save)
+- 413 for oversized source (shared mapping, also used by draft saves)
 - integration test: `POST /validate` template → `valid:true`; hostile body → `issues` + `content:null`; 401/403; 413
 Verification:
 - tests green; `content` is null when invalid; issues ordered (path,code)
-Outcome: pending.
+Outcome:
+- `api/ValidateController`: `POST /api/v1/validate` (author-only) → 200 `{valid, issues, content}`; content null when invalid (IR-001, FR-034); read-only, no state change (verified against `drafts`)
+- `api/InvalidRequestException` → 400 `invalid-request`; non-JSON/array bodies → 400; unknown path segments → 400; `SourceTooLargeException` → 413 `source-too-large` (shared with TASK-008 draft saves)
+- `ValidateApiTest` (7): valid template → canonical content (sop_id BILL-001); spec §3 mutation → both `refund-limit-missing` + `refund-escalation-missing`, readable messages (no parser internals); deterministic (path, code) ordering; 401/403; malformed envelopes → 400; 65,537-byte source → 413; stateless check via `SELECT count(*) FROM drafts`
+- `Fixtures` made public for reuse by draft/publication tests
+- `mvn test` → `Tests run: 56, Failures: 0, Errors: 0`
 
 ### TASK-008 — Draft persistence API
 Status: TODO
