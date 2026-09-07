@@ -41,7 +41,7 @@ Outcome:
 - note: UI placeholder page replaced in TASK-011
 
 ### TASK-003 — Identity, authorization, CORS, error handling
-Status: TODO
+Status: COMPLETED
 Implements: DES-206, DES-207, DES-205, FR-001, IR-001, NFR-020, PRN-004
 Depends on: TASK-002
 Work:
@@ -51,7 +51,10 @@ Work:
 - integration tests: 401 on missing/unknown identity; 403 consumer on author op; 404 unknown endpoint shape; error body shape
 Verification:
 - tests green; error body matches IR-001 exactly
-Outcome: pending.
+Outcome:
+- `mvn test` → `Tests run: 9, Failures: 0, Errors: 0` in `IdentityAndErrorApiTest` (missing/unknown identity 401, consumer→author 403, author open 200, generic 500 without internals, 404 normalized body, CORS allow/reject)
+- fix found + repaired during verification: CORS preflight `OPTIONS` was blocked by the identity filter (no header) → preflight now excluded from identity check (browser handshake, not a user action); documented below as a design note
+- testcontainers needed 1.21.4 for Docker Engine 29 (API ≥ 1.44); recorded in `pom.xml`
 
 ### TASK-004 — Safe YAML loader and section parser
 Status: TODO
