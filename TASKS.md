@@ -266,7 +266,7 @@ Outcome:
   /spec) and the implementation record (ARCHITECTURE/TECHNICAL_DESIGN/TASKS)
 
 ### TASK-013 — `make verify` fully green (recorded)
-Status: TODO
+Status: COMPLETED
 Implements: NFR-041, PRN-008
 Depends on: TASK-003…011
 Work:
@@ -275,6 +275,16 @@ Work:
 - record actual commands + results for VERIFICATION.md
 Verification:
 - `make verify` exit 0 end-to-end; no skipped/`@Disabled` tests
+Outcome:
+- `make verify` exit 0 end-to-end (recorded run, commit `85d1bd0`):
+  - backend `cd backend && mvn -q test` — BUILD SUCCESS (82 tests: content
+    engine 40, validate API 7, drafts 10, identity/error 9, publication 9,
+    read 5, seed 2; Testcontainers PostgreSQL 16); a deliberate 500-path test
+    logs the expected `Unexpected error` ERROR line — no real failure
+  - frontend `npm ci && npm run typecheck && npm test && npm run lint &&
+    npm run build` — tsc clean, Vitest 13/13, ESLint clean (0 warnings),
+    Vite production build 38 modules, 164 kB JS (51.96 kB gzip)
+- No tests skipped or `@Disabled`; no test weakened or deleted to pass
 Outcome: pending.
 
 ### TASK-014 — `make smoke` against Compose
