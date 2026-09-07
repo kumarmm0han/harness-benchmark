@@ -38,17 +38,18 @@ Verification:
 - outcome: delivery committed + pushed
 
 ### TASK-003 — Root Makefile + scripts + CI-independent entry points
-Status: TODO
+Status: COMPLETED
 Implements: DES-014, NFR-041
 Depends on: TASK-002
 Work:
-- `Makefile` targets: `verify`, `demo`, `smoke`, `down`, `down-clean`, `backend-test`, `frontend-test`
-- `scripts/smoke.sh` (primary journey against Compose; nonzero on failure)
-- `scripts/smoke` wait-for-health helper (poll `/actuator/health`, not fixed sleeps)
+- `Makefile` targets: `demo`, `smoke`, `verify`, `down`, `down-clean`, `backend-test`, `backend-build`, `frontend-test`, `frontend-build`, `typecheck`, `lint`
+- `scripts/smoke.sh` (primary journey save→validate→publish→list→detail→permission; nonzero on failure), `scripts/wait-for-health.sh` (polls frontend `/healthz` + backend API, no fixed sleeps)
+- Fixes made to reach green: (1) frontend `nginx.conf` is a `server` block → moved to `/etc/nginx/conf.d/default.conf` (it was replacing the main config and nginx failed to start); (2) container resolves `localhost` to `::1` but nginx listened IPv4-only → added `listen [::]:80`; (3) smoke used `[ x =~ … ]` (unsupported by `test`) → `[[ ]]`. All smallest justified corrections; no requirements touched.
 Verification:
-- `make demo` brings up three healthy services (healthchecks green)
-- `make smoke` runs end-to-end and exits 0 against a seeded stack (run only after TASK-014)
-- `make down-clean` removes containers and the named volume
+- `make demo` → db/backend/frontend all `healthy`; `make down-clean` → containers + `compose_sop_pgdata` volume removed
+- `make smoke` → exit 0 (6/6 steps) against a clean `make down-clean`-then-`make demo` stack
+- AC-E2E-005: `make down` + `up` (volume kept) → draft revision + publication version retained, seed not duplicated
+- make verify / make smoke: verified in TASK-021
 
 ## Phase B — Backend core (deterministic pipeline)
 
@@ -222,14 +223,16 @@ Verification:
 ## Phase E — Integration + delivery
 
 ### TASK-019 — Smoke script + make targets (NFR-041)
-Status: TODO
+Status: COMPLETED
 Implements: DES-014, NFR-041
 Depends on: TASK-014, TASK-018
 Work:
-- `scripts/smoke.sh`: primary journey (save→validate→publish→list→detail→consumer 403→historical) against the Compose stack
-- `Makefile` final wiring (demo, verify, smoke, down, down-clean)
+- `scripts/smoke.sh`: primary journey (save→validate→publish→list→detail→consumer 403) against the Compose stack (uses `jq`, polls readiness, embeds the spec §3 template via quoted heredoc)
+- `Makefile` wiring: `demo` (up --build -d + wait-for-health), `smoke` (ensures up + wait-for-health + smoke.sh), `verify`, `down`, `down-clean`
 Verification:
-- `make demo` then `make smoke` exits 0; `make demo` again (restart) → seed preserved, draft still present, publication still present (AC-E2E-005)
+- `make demo` then `./scripts/smoke.sh` → SMOKE PASS (revision captured → publish version 1 → listed under `domain=Billing&risk=medium` → consumer detail 200 same sop_id/version → consumer publish 403 + draft list 403); clean-slate run (`make down-clean` → `make demo` → smoke) also exit 0
+- `make demo` again after `make down` (AC-E2E-005): draft (`BILL-REFUND-001` revision 2) and publication (version 1) retained after restart; seed not re-duplicated
+- outcome: committed + pushed
 
 ### TASK-020 — Documentation (README + API.md)
 Status: TODO
