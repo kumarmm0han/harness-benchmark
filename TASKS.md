@@ -322,7 +322,7 @@ Outcome:
   re-run green (83 tests), README status conventions updated with 405
 
 ### TASK-015 — Acceptance journeys + VERIFICATION.md
-Status: TODO
+Status: COMPLETED
 Implements: PRN-008, PRN-009, NFR-041
 Depends on: TASK-014
 Work:
@@ -331,4 +331,27 @@ Work:
 - final `git push` of this commit; confirm
 Verification:
 - `VERIFICATION.md` committed and pushed; all five journeys have recorded evidence
-Outcome: pending.
+Outcome:
+- All five acceptance journeys executed live against a clean Compose stack
+  (`make clean-data` + `make demo`) through the UI origin — final full run
+  **18/18 pass** (AC-002 shows exactly the two semantic issues
+  `refund-limit-missing` + `refund-escalation-missing` and a 422 that keeps
+  v1 current; AC-004 proves v1 is byte-identical after v2 via matching
+  canonical-content sha256 `07373b54…130afe67`).
+- `VERIFICATION.md` written: reproduction steps,
+  environment, `make verify` (backend 83 tests / 0 fail / 0 skip; frontend
+  13/13 + typecheck + lint + build) and `make smoke` (exit 0, recorded output),
+  the 18 acceptance assertions with the evidence each relied on, a full
+  requirement→evidence traceability table (AC/FR/NFR/IR/DR/PRN), a PRINCIPLES.md
+  conformance section (YAGNI/no-placeholder/completeness/testing-first/no
+  weakening), and how-to-reproduce.
+- Final `git push` confirmed to `origin/pi-01`.
+- Known limitations (by design, per REQUIREMENTS/DR-003): demo identities are
+  a labeled local mechanism and not real authentication; Postgres ships a
+  documented local-only default credential; demo is for local use only.
+- Assumption: the five journeys + the safety/refund/escalation rules in the
+  template are the authoritative scope for this demo (frozen by spec.md).
+- No requirement was weakened, skipped, or replaced with a workaround.
+- This is the final task; the deliverable set is
+  `ARCHITECTURE.md`, `TECHNICAL_DESIGN.md`, `TASKS.md` (all 15 COMPLETED),
+  `README.md`, `VERIFICATION.md`, and the implementation + tests.
