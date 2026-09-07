@@ -192,7 +192,7 @@ Outcome:
 - `mvn test` → `Tests run: 82, Failures: 0, Errors: 0` (stable across runs)
 
 ### TASK-011 — React frontend (all screens)
-Status: TODO
+Status: COMPLETED
 Implements: DES-301…305, FR-001, FR-010, FR-034, FR-050, FR-052, FR-053, NFR-050, ARC-001
 Depends on: TASK-002
 Work:
@@ -204,7 +204,31 @@ Work:
 - Vitest+RTL tests; `tsc --noEmit`; ESLint; `vite build`
 Verification:
 - all quality gates green; tests cover identity gating, filter params, two-pane consistency, error text, keyboard-accessible
-Outcome: pending.
+Outcome:
+- `types.ts` + `api.ts`: typed client, every request carries `X-Demo-User` (FR-001);
+  `ApiError` keeps `{code,message,issues}` for text-only error surfacing
+- Identity selector labeled "local only — not real authentication"; role-aware nav:
+  authors get My drafts/New draft, consumers never see draft surfaces; leaving
+  author-only views when switching to consumer
+- `Browse`: domain/risk selects (fixed values), AND semantics + `ORDER BY sop_id`
+  come from the API; 400 filter errors shown as server text; useful empty state
+- `Drafts`: revision + publication-failure indicator as text (NFR-050)
+- `Editor`: textarea keeps content through any failure; unsaved-changes badge;
+  template insert (spec.md §3), save, validate (stage-grouped issues w/ code,
+  message, path; canonical preview only when valid), publish — saves first when
+  dirty, publishes the saved revision; 409/422/404/413 surfaced as readable text
+  (422 shows the server issue list) (FR-010, FR-034, FR-045, AC-E2E-001/002/004)
+- `SopDetail`: ONE fetch supplies identity+version+content; Human and JSON tabs
+  render that same snapshot (FR-052/FR-053); all authored strings rendered as
+  text (XSS `<script>` sample stays inert, asserted); policy note explains content
+  is SOP policy, not executed actions; author-only version picker loads immutable
+  historical snapshots (FR-043); 404 explains drafts are never substituted
+- Tests: `App.test.tsx` (13) covering all of the above with a fetch router mock
+- Gates: `tsc --noEmit` ✓, `eslint` ✓, `vitest run` 13/13 ✓, `vite build` ✓
+- Live stack check via UI origin :3010: UI HTML+JS 200, /api proxied, seed draft
+  visible, full author→consumer journey (save→publish v1→list/detail/history) OK,
+  duplicate publish 409 `duplicate-publication`, consumer mutations 403, no-identity
+  401, CORS allows :3010 and rejects other origins
 
 ### TASK-012 — README (startup, journeys, shutdown, data removal, API doc)
 Status: TODO
