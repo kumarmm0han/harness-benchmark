@@ -55,6 +55,8 @@ public class PublishController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sop_id", publication.sopId());
         out.put("version", publication.version());
+        // Server-assigned UTC publish time (spec.md §4 envelope).
+        out.put("published_at", java.time.OffsetDateTime.ofInstant(publication.publishedAt(), java.time.ZoneOffset.UTC));
         out.put("content", publication.content()); // stored canonical snapshot (FR-042)
         return out;
     }

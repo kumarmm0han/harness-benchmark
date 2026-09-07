@@ -83,6 +83,8 @@ class PublicationApiTest extends AbstractPostgresSpringTest {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsEntry("sop_id", "PUB-OK");
         assertThat(res.getBody()).containsEntry("version", 1);
+        assertThat(res.getBody().get("published_at")).isInstanceOf(String.class); // server-assigned UTC time
+        assertThat(res.getBody().get("content")).isInstanceOf(Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> content = (Map<String, Object>) res.getBody().get("content");
         assertThat(content).containsEntry("sop_id", "PUB-OK");

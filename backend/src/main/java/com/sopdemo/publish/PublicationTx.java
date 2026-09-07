@@ -1,6 +1,7 @@
 package com.sopdemo.publish;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +36,12 @@ public class PublicationTx {
         this.json = json;
     }
 
+    /** Outcome of the atomic write phase: stored version + server-assigned UTC publish time. */
+    public record WriteResult(int version, Instant publishedAt) {
+    }
+
     @Transactional
-    public int publishLocked(String sopId, long requestedRevision, String source, Map<String, Object> content) {
+    public WriteResult publishLocked(String sopId, long requestedRevision, String source, Map<String, Object> content) {
         Long currentRevision =
                 jdbc.queryForObject("SELECT revision FROM drafts WHERE sop_id = ? FOR UPDATE", Long.class, sopId);
         if (currentRevision == null) {
@@ -72,7 +77,10 @@ public class PublicationTx {
             }
             throw ex;
         }
-        return nextVersion;
+        Instant publishedAt = jdbc.queryForObject(
+                "SELECT published_at FROM sop_versions WHERE sop_id = ? AND version = ?",
+                Instant.class, sopId, nextVersion);
+        return new WriteResult(nextVersion, publishedAt);
     }
 
     private static SopException stale(long current, long requested) {

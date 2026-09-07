@@ -1,5 +1,6 @@
 package com.sopdemo.publish;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import com.sopdemo.drafts.DraftStore.Draft;
 @Service
 public class PublicationService {
 
-    public record Publication(String sopId, int version, Map<String, Object> content) {
+    public record Publication(String sopId, int version, Instant publishedAt, Map<String, Object> content) {
     }
 
     private final DraftStore drafts;
@@ -64,8 +65,9 @@ public class PublicationService {
                     "The source declares sop_id '" + declared + "' but the draft is saved under '" + sopId + "'.",
                     List.of());
         }
-        int version = tx.publishLocked(sopId, requestedRevision, draft.source(), analysis.content());
-        return new Publication(sopId, version, analysis.content());
+        PublicationTx.WriteResult result =
+                tx.publishLocked(sopId, requestedRevision, draft.source(), analysis.content());
+        return new Publication(sopId, result.version(), result.publishedAt(), analysis.content());
     }
 
     private static List<Map<String, Object>> issueMaps(ContentAnalysis analysis) {

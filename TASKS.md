@@ -167,7 +167,7 @@ Outcome:
 - `mvn test` → `Tests run: 80, Failures: 0, Errors: 0` (two consecutive stable runs)
 
 ### TASK-010 — Deterministic seed (demo profile)
-Status: TODO
+Status: COMPLETED
 Implements: DES-208, DR-003, ARC-007
 Depends on: TASK-008
 Work:
@@ -176,7 +176,20 @@ Work:
 - integration test: first seed inserts 1 row; second seed does not duplicate or overwrite an edited draft
 Verification:
 - green; visible in `GET /drafts` after `make demo`
-Outcome: pending.
+Outcome:
+- `backend/src/main/resources/seed/duplicate-charge.md` = the exact spec.md §3 valid
+  template (sop_id `BILL-REFUND-001`)
+- `config/SeedInitializer` (`@Profile("demo")`, `ApplicationRunner` after Flyway): atomic
+  `INSERT … SELECT … WHERE NOT EXISTS` — fills a missing draft only; repeated startups
+  neither duplicate drafts nor reset author edits (DR-003); seed is draft-only, never
+  auto-published (the journey's author performs publication)
+- publish envelope aligned with spec.md §4: 200 body `{sop_id, version, published_at,
+  content}`; `published_at` is the server-assigned UTC timestamp; envelope `sop_id`
+  equals `content.sop_id`
+- `SeedApiTest` (2, demo profile): seeded draft revision 1 with the exact template source
+  and nothing published; author edit → two more boots → single row, revision 2, edited
+  source preserved (no clobber, no duplicate); delete + boot restores the seed
+- `mvn test` → `Tests run: 82, Failures: 0, Errors: 0` (stable across runs)
 
 ### TASK-011 — React frontend (all screens)
 Status: TODO
