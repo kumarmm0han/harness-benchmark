@@ -46,4 +46,7 @@ public record IssueCode(String value, Stage stage) {
     public static final IssueCode MULTIPLE_REFUND_ACTIONS = new IssueCode("MULTIPLE_REFUND_ACTIONS", Stage.SEMANTIC);
     public static final IssueCode MISSING_REFUND_AMOUNT_INPUT = new IssueCode("MISSING_REFUND_AMOUNT_INPUT", Stage.SEMANTIC);
     public static final IssueCode ANSWER_QUESTION_REFUND = new IssueCode("ANSWER_QUESTION_REFUND", Stage.SEMANTIC);
+
+    // Publication (IR-001): the documented sop_id must match the requested draft path.
+    public static final IssueCode SOP_ID_MISMATCH = new IssueCode("SOP_ID_MISMATCH", Stage.SEMANTIC);
 }

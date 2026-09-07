@@ -65,6 +65,17 @@ public class DraftRepository {
         return jdbc.query("SELECT " + COLS + " FROM sop_draft ORDER BY sop_id", new MapSqlParameterSource(), MAPPER);
     }
 
+    /** Locking read (DES-008): serializes concurrent publishes of the same {@code sop_id}. */
+    public Draft findForUpdate(String sopId) {
+        try {
+            return jdbc.queryForObject(
+                    "SELECT " + COLS + " FROM sop_draft WHERE sop_id = :sopId FOR UPDATE",
+                    new MapSqlParameterSource("sopId", sopId), MAPPER);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
     public void setPublicationFailed(String sopId, boolean failed) {
         jdbc.update(
                 "UPDATE sop_draft SET publication_failed = :f, updated_at = now() WHERE sop_id = :sopId",

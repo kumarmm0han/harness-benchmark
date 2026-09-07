@@ -10,7 +10,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-002 | COMPLETED | DES-002/003, FR-020/021, PRN-001/004/005, NFR-020 | 001 | safe YAML + Markdown parse + canonical model |
 | TASK-003 | COMPLETED | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
 | TASK-004 | COMPLETED | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
-| TASK-005 | TODO | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
+| TASK-005 | COMPLETED | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
 | TASK-006 | TODO | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | TODO | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
 | TASK-008 | TODO | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
@@ -73,16 +73,17 @@ Verification: `mvn -q test -Dtest='*IT' -DfailIfNoTests=false` (ephemeral PG) gr
 Outcome: PASS — 57 unit tests green; 8 ITs green (DraftApiIT 6, SeedIT 2). Corroborated fixes: error envelope now carries the correct status (previously defaulted to 200 for all API errors); `upsert` `RETURNING` SQL typo fixed; `SeedIT` added for DR-003.
 
 ### TASK-005 — Publication service + REST API + error/CORS
-Status: TODO
+Status: COMPLETED
 Implements: DES-008/009/011, FR-042, FR-043, FR-045, IR-001, PRN-004, PRN-006
 Depends on: TASK-004
 Work:
-- `PublicationService`: locked draft read, revision match (409), re-validate; invalid → set `publication_failed` + 422; valid → insert `max(version)+1` + upsert current (one transaction); constraint violations → 409.
-- `PolicyAuthorController` (`POST /validate`, `POST /sops/{id}/publish`), `CatalogController` (`GET /sops[?domain&risk]`, `/sops/{id}`, `/sops/{id}/versions/{v}`).
-- `ApiErrors` `@ControllerAdvice` with `{code,message,issues}` and the full status map (400/401/403/404/409/413/422/500); CORS to configured UI origin only.
-- Integration tests: AC-E2E-001 (save→validate→publish v1→filter), AC-E2E-002 (financial → 422 → fix → publish), AC-E2E-003 (consumer reads same snapshot + author-op 403), AC-E2E-004 (invalid replacement retains v1 → corrected → v2, v1 unchanged), AC-E2E-005 (seed + retain), concurrency (2 revisions → distinct versions; duplicate → 409; stale → 409); 404 absent; 400 bad filter.
+- `PublicationService` (transactional, serialized per `sop_id` by `SELECT ... FOR UPDATE`): locked draft read (404 if absent), revision match (409 stale), re-validate saved source → invalid persists `publication_failed` + 422 while retaining the previous current (FR-045); valid → insert snapshot at `MAX(version)+1` + upsert current + clear indicator in one transaction; documented `sop_id` must equal the draft path else 422 (`SOP_ID_MISMATCH`, IR-001); `UNIQUE(sop_id,version)`/`UNIQUE(sop_id,draft_revision)` backstop → 409.
+- `PublicationRepository` (JDBC over `sop_publication`/`sop_current`; JSONB snapshot stored via `CAST(... AS jsonb)`; current/version/list reads); `DraftRepository.findForUpdate` row-lock read.
+- `PolicyAuthorController` (`POST /validate` → `{valid,issues,content}` 200; `POST /sops/{id}/publish` 200/404/409/422), `CatalogController` (`GET /sops[?domain&risk]` with 400 on invalid filters, `GET /sops/{id}` detail, `GET /sops/{id}/versions/{v}` author-only).
+- Reused the `ApiErrors` envelope/status map; CORS already limited to the configured UI origin.
+- Integration tests: AC-E2E-001 (save→validate→publish v1, appears in domain/risk filter + AND-negative), AC-E2E-002 (financial → 422 separate issues → fix → publish), AC-E2E-003 (consumer reads snapshot; consumer mutation 403), AC-E2E-004 (invalid replacement retains v1 → corrected → v2, v1 unchanged), stale 409, duplicate 409, `sop_id` mismatch 422, absent 404, invalid filter 400, missing source 400, concurrent same-revision publish → exactly one winner + a single current version.
 Verification: `mvn -q test -Dtest='*IT' -DfailIfNoTests=false` (ephemeral PG) green incl. five journeys' backend behavior.
-Outcome: PENDING.
+Outcome: PASS — 57 unit + 18 integration tests green (DraftApiIT 6, SeedIT 2, PublicationIT 10). Corroborated fixes: JSONB insert cast; qualified `sop_current` join columns (ambiguous `version`); atomic publish semantics.
 
 ### TASK-006 — Compose stack + deterministic seed + README + demo/down
 Status: TODO

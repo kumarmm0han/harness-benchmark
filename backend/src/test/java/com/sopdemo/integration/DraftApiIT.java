@@ -72,10 +72,22 @@ class DraftApiIT {
                 .andExpect(jsonPath("$.source").value("second revision of the draft"))
                 .andExpect(jsonPath("$.publication_failed").value(false));
 
-        // Draft list contains it.
-        mvc.perform(get("/api/v1/drafts").header("X-Demo-User", "demo-author"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+        // Draft list contains it (membership check; not a global count, so other tests' drafts don't interfere).
+        String listBody =
+                mvc.perform(get("/api/v1/drafts").header("X-Demo-User", "demo-author"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        com.fasterxml.jackson.databind.JsonNode hit = null;
+        for (var e : new com.fasterxml.jackson.databind.ObjectMapper().readTree(listBody)) {
+            if (e.get("sop_id").asText().equals("IT-A")) {
+                hit = e;
+            }
+        }
+        assertThat(hit).isNotNull();
+        assertThat(hit.get("revision").asLong()).isEqualTo(2);
+        assertThat(hit.get("publication_failed").asBoolean()).isFalse();
     }
 
     @Test
