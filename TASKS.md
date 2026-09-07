@@ -9,7 +9,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-001 | COMPLETED | ARC-001, PRN-003, PRN-007 | — | backend scaffold + build |
 | TASK-002 | COMPLETED | DES-002/003, FR-020/021, PRN-001/004/005, NFR-020 | 001 | safe YAML + Markdown parse + canonical model |
 | TASK-003 | COMPLETED | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
-| TASK-004 | IN_PROGRESS | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
+| TASK-004 | COMPLETED | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
 | TASK-005 | TODO | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
 | TASK-006 | TODO | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | TODO | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
@@ -59,17 +59,18 @@ Verification: `mvn -q -B test` green — 58 tests (SafeYamlTest, ParsingServiceT
 Outcome: PASS.
 
 ### TASK-004 — Persistence + identity + draft API + seed
-Status: IN_PROGRESS
+Status: COMPLETED
 Implements: DES-007/008/010/015, DR-001, DR-003, FR-001, FR-010, PRN-006, PRN-007
 Depends on: TASK-003
 Work:
 - Flyway `V1__init.sql` (`sop_draft`, `sop_publication`, `sop_current`) with `UNIQUE(sop_id,version)` + `UNIQUE(sop_id,draft_revision)`.
 - `DraftRepository` (JDBC), `DraftStore` save (upsert, `revision++`, clear failure), idempotent `DemoSeeder` runner.
-- `IdentityFilter` (`X-Demo-User` → missing/unknown `401`; author-op consumer `403`) wired for `/api/v1/**`.
+- `IdentityFilter` (`X-Demo-User` → missing/unknown `401`; author-op consumer `403`) wired for `/api/v1/**`; filter-scope 401 written via the shared envelope.
 - `DraftController`: `PUT /drafts/{id}`, `GET /drafts`, `GET /drafts/{id}`; `400` envelope, `413` oversized guards.
-- Integration tests (PostgreSQL): save increments revision; restart preserves; identity 401/403; consumer drafts 403; draft list shows indicator; seeder idempotent (run twice).
+- `ApiErrors`: single source of truth for the `{code,message,issues}` envelope **with the correct HTTP status** (IR-001, PRN-003/005), shared by the `@RestControllerAdvice` and the identity filter.
+- Integration tests (PostgreSQL): save increments revision; identity 401/403; consumer drafts 403; draft list + `publication_failed`; oversized 413; missing source 400; missing draft 404; `SeedIT` idempotent seed (re-run is a no-op) and never overwrites an existing draft.
 Verification: `mvn -q test -Dtest='*IT' -DfailIfNoTests=false` (ephemeral PG) green for draft+identity+seed ITs.
-Outcome: PENDING.
+Outcome: PASS — 57 unit tests green; 8 ITs green (DraftApiIT 6, SeedIT 2). Corroborated fixes: error envelope now carries the correct status (previously defaulted to 200 for all API errors); `upsert` `RETURNING` SQL typo fixed; `SeedIT` added for DR-003.
 
 ### TASK-005 — Publication service + REST API + error/CORS
 Status: TODO
