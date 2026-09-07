@@ -122,7 +122,7 @@ Outcome:
 - `mvn test` → `Tests run: 56, Failures: 0, Errors: 0`
 
 ### TASK-008 — Draft persistence API
-Status: TODO
+Status: COMPLETED
 Implements: DES-202, FR-010, FR-045 (save-clear flag), DR-001, ARC-004
 Depends on: TASK-003, TASK-004
 Work:
@@ -131,7 +131,12 @@ Work:
 - integration tests (PostgreSQL via Testcontainers): save → rev 1; second save → rev 2; save invalid content is allowed; flag cleared on save
 Verification:
 - green; restart retains drafts (via compose in TASK-002's stack)
-Outcome: pending.
+Outcome:
+- `drafts/DraftStore`: single `INSERT … ON CONFLICT DO UPDATE` upsert; revision increments server-side (first save → 1); every save clears `publish_failed` (FR-045) and bumps `saved_at`; `markPublishFailed` for the publication service (TASK-009)
+- `drafts/DraftController`: `PUT /api/v1/drafts/{sop_id}` → 200 `{sop_id, revision, source}`; `GET /api/v1/drafts` → author-only `{drafts:[…]}` (FR-050); `GET /api/v1/drafts/{sop_id}` → saved source verbatim (FR-010) or 404 `draft-not-found`
+- validation: sop_id charset `[A-Z][A-Z0-9-]{0,63}` else 400; size gate → 413 (FR-020); author-only (401/403); saving allowed before content is valid (IR-001)
+- `config/JacksonConfig`: global `SNAKE_CASE` property naming so all IR-001 response fields are `sop_id`/`publish_failed`/`saved_at` (PRN-005 central convention)
+- test infrastructure fix: integration tests now share one JVM-scoped PostgreSQL (static start, `@DynamicPropertySource`) so the Spring context cache never points at a container the Testcontainers extension already stopped — `DraftApiTest` (10 cases) + full suite `mvn test` → `Tests run: 66, Failures: 0, Errors: 0`
 
 ### TASK-009 — Publication service + read model
 Status: TODO
