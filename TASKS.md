@@ -235,24 +235,24 @@ Verification:
 - outcome: committed + pushed
 
 ### TASK-020 — Documentation (README + API.md)
-Status: TODO
+Status: COMPLETED
 Implements: NFR-001, PRN-007
 Depends on: TASK-019
 Work:
-- `README.md`: URLs, identity selection, the five acceptance journeys, shutdown, data deletion, local-only disclaimer
-- `API.md`: normative request/response shapes for all 8 endpoints
+- `README.md`: URLs, identity selection, the five acceptance journeys, shutdown, data deletion (`make down-clean`), local-only disclaimer
+- `API.md`: normative request/response shapes for all 8 endpoints + status codes + error envelope
 Verification:
-- each of the five journeys maps to a documented sequence; every `IR-001` endpoint has a documented request/response; README has explicit "delete data" command (`make down-clean`)
+- each of the five journeys maps to a documented sequence; every `IR-001` endpoint documents a request/response; README has an explicit "delete data" command (`make down-clean`) — all present
 
 ### TASK-021 — Full `make verify` + fix drift
-Status: TODO
+Status: COMPLETED
 Implements: NFR-041, PRN-008
 Depends on: TASK-001..020
 Work:
-- run `make verify` (backend build+unit, PG integration, frontend tests, tsc, lint, prod build)
-- fix failures with smallest justified corrections (no assertion removal, no requirement weakening)
+- `make verify` (backend build+unit, PG integration, frontend tests, tsc, lint, prod build); fix drift with smallest justified corrections (no assertion removal, no requirement weakening)
 Verification:
-- `make verify` exits 0 on a clean checkout; if any test was fixed, the diff and reason are recorded in VERIFICATION.md; if a lower-level artifact (design/task) needed a correction, the correction is in that file with a reference
+- `make verify` exits 0 on a clean checkout: backend `mvn test` → Tests run: 82, Failures: 0, Errors: 0; frontend `vitest` → 23/23; `tsc --noEmit` clean; `eslint --max-warnings 0` clean; `vite build` succeeds
+- drift fixes: see VERIFICATION.md §4 (publish tx split, jsonb→text, `ALIAS` code finer-grained than DES-001 table, in-JVM filtering) and §6 (Testcontainers→docker CLI for PG)
 
 ### TASK-022 — Final verification + delivery
 Status: TODO
@@ -264,3 +264,5 @@ Work:
 - report honestly: any task with a failed push is delivery pending; unresolved limitations listed
 Verification:
 - `VERIFICATION.md` exists and references every `REQ*` and `PRN*` ID with a status; the final commit is on `ft-opencode-01` and pushed (delivery confirmed by `git ls-remote`); a summary of the five acceptance journeys is present in the doc
+- Clean-clone re-verification (independent checkout `/tmp/opencode/verify`, HEAD `cb266c0`): `mvn -q -f backend/pom.xml test` → Tests run: 82, Failures: 0, Errors: 0, BUILD SUCCESS; `cd frontend && npm ci && npx tsc --noEmit` clean; `npx vitest run` → Test Files 4 passed, Tests 23 passed. Green on a clean checkout.
+- Status: COMPLETED (all 22 tasks COMPLETED; no failed pushes; delivery status matches implementation status)

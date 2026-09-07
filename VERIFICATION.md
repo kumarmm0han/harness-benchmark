@@ -3,7 +3,7 @@ Artifact: VERIFICATION.md
 Stage: 6 (of 6) — final verification
 Status: complete
 Working branch: ft-opencode-01 → origin (github.com/kumarmm0han/harness-benchmark)
-Final commit delivered: 1fc7b6c (confirmed via `git ls-remote origin ft-opencode-01`)
+Code state verified on a clean clone: `cb266c0` (clone of ft-opencode-01 at that commit)
 ---
 
 # SOP Demo — Verification
@@ -182,8 +182,12 @@ Committed and pushed to `ft-opencode-01` (remote `origin/kumarmm0han/harness-ben
 each task bundled with its code/tests/artifacts and task id in the message:
 `f14998c` TASK-001…008 · `27ceb8f` TASK-009/010/011 · `879f7b8` TASK-012/013/014 ·
 `c67e3f0` TASK-002 · `9da4de7` TASK-015…018 · `feede73` TASK-003/019/020/021 ·
-`1fc7b6c` TASK-019 follow-up (nginx `conf.d`). Head `1fc7b6c` confirmed on the remote
-via `git ls-remote`. **No failed pushes; every completed task is delivered.**
+`1fc7b6c` TASK-019 follow-up (nginx `conf.d`) · `cb266c0` TASK-022 (this artifact) ·
+final commit — TASKS.md tracker closure (020/021/022) + this verification note.
+**No failed pushes; every completed task is delivered. The clean-clone
+re-verification (backend 82/82, frontend 23/23, TSC clean) was performed on the
+checkout at `cb266c0`; the final commit contains documentation (tracker + this
+note) only, no code or tests.**
 
 ## 8. Unresolved items
 
