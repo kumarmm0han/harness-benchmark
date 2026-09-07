@@ -255,7 +255,7 @@ Verification:
 - drift fixes: see VERIFICATION.md §4 (publish tx split, jsonb→text, `ALIAS` code finer-grained than DES-001 table, in-JVM filtering) and §6 (Testcontainers→docker CLI for PG)
 
 ### TASK-022 — Final verification + delivery
-Status: TODO
+Status: COMPLETED
 Implements: PRN-008, PRN-009
 Depends on: TASK-001..021
 Work:
