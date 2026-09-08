@@ -12,7 +12,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-004 | COMPLETED | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
 | TASK-005 | COMPLETED | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
 | TASK-006 | COMPLETED | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
-| TASK-007 | TODO | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
+| TASK-007 | COMPLETED | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
 | TASK-008 | TODO | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
 | TASK-009 | TODO | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
 | TASK-010 | TODO | DES-016/017, NFR-041, PRN-008 | 009 | make verify/smoke + full verification |
@@ -100,16 +100,20 @@ Verification: `docker compose config -q` valid; `make demo` up → 3 healthy; se
 Outcome: PASS — `docker compose config -q` ok; `make demo` → db/backend/frontend all healthy; seed retrievable and published (v1); author→consumer + status contract verified end-to-end; restart retains; `make clean` removes `sopdemo_pgdata`. Frontend healthcheck uses explicit `127.0.0.1` (alpine `localhost`→`::1` quirk).
 
 ### TASK-007 — Frontend base: identity selector + list/filters + draft list
-Status: TODO
+Status: COMPLETED
 Implements: DES-013/014, FR-001, FR-050, NFR-050
 Depends on: TASK-006
 Work:
-- Vite/React/TS scaffold; `src/api.ts` client (sends `X-Demo-User`, normalizes error bodies to `{code,message,issues}`); `src/template.ts` (exact `spec.md` §3 template).
-- `IdentitySelector` labeled demo-only; `SopList` with domain/risk filter (AND) + author-only draft list; consumer sees no draft controls; error/filter-invalid shown as text (not color).
-- `GET /sops?domain&risk`, `GET /drafts`; 400 on invalid filter surfaced.
-- Vitest + tsc + eslint + build; tests: filter wiring, role gating of draft list, empty state, error text, keyboard usable.
+- Vite/React/TS scaffold; `src/App.tsx` shell (identity state + list/editor/detail navigation, one shared `ApiClient`); `src/styles.css` (status/errors conveyed with text, not color alone).
+- `src/api.ts` client (sends `X-Demo-User` on every call, normalizes error bodies to `{code,message,issues}`); `src/template.ts` (exact `spec.md` §3 template).
+- `IdentitySelector` labeled demo-only; `SopList` with domain/risk AND-filter + author-only draft list (+`publication_failed` flag); consumer sees no draft controls; invalid-filter errors surfaced as text.
+- `GET /sops?domain&risk`, `GET /drafts`; 400/401/403 surfaced as text.
+- `Editor`/`SopDetail` kept as navigable placeholders (built out in TASK-008/009).
+- Frontend `Dockerfile` → multi-stage `npm ci` + `npm run typecheck` + `vite build` → nginx (same `/api` proxy); added `.dockerignore`; removed the static `html/` placeholder.
+- Pinned `@testing-library/react` to `^15.0.7` (this registry mirror exposes no 15.2+); committed `package-lock.json` for reproducible builds.
+- Vitest + tsc + eslint + build; tests: template==`spec.md`§3 guard, `ApiClient` identity-header + error normalization, `IdentitySelector` (demo-only, radios, `onChange`), `SopList` (empty, domain/risk AND, error-as-text, author-drafts + flag, consumer gating, keyboard-operable controls).
 Verification: `npm run lint && npm run typecheck && npm run test && npm run build` green.
-Outcome: PENDING.
+Outcome: PASS — lint 0 issues; `tsc --noEmit` clean; 16/16 tests green (template 2, api 4, IdentitySelector 3, SopList 7); `vite build` → 36 modules. Fixed test isolation by registering `@testing-library/react` `cleanup()` in `setup.ts` (Vitest runs with globals disabled). `Editor`/`SopDetail` remain placeholders until TASK-008/009.
 
 ### TASK-008 — Editor: template / save / validate / publish
 Status: TODO
