@@ -60,7 +60,7 @@ export default function App() {
           />
         )}
         {route.kind === "detail" && (
-          <SopDetail sopId={route.sopId} onBack={() => setRoute({ kind: "list" })} />
+          <SopDetail sopId={route.sopId} client={client} onBack={() => setRoute({ kind: "list" })} />
         )}
       </main>
     </div>

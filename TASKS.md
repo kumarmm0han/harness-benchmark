@@ -14,7 +14,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-006 | COMPLETED | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | COMPLETED | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
 | TASK-008 | COMPLETED | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
-| TASK-009 | TODO | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
+| TASK-009 | COMPLETED | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
 | TASK-010 | TODO | DES-016/017, NFR-041, PRN-008 | 009 | make verify/smoke + full verification |
 
 ---
@@ -129,16 +129,17 @@ Verification: `npm run lint && npm run typecheck && npm run test && npm run buil
 Outcome: PASS — lint clean; `tsc --noEmit` clean; 23/23 tests green (added 7 Editor tests); `vite build` OK. Editor is wired to the real API; `SopDetail` human/JSON views are next (TASK-009).
 
 ### TASK-009 — Human + JSON views (identical snapshot, HTML-as-text)
-Status: TODO
+Status: COMPLETED
 Implements: DES-014, FR-052, FR-053, NFR-020
 Depends on: TASK-008
 Work:
-- `HumanView` (policy/inputs/rules/actions/boundaries/messages) + `JsonView`, both from the same fetched `Published` (identity + version shown).
-- Raw HTML disabled: rendered as text (no `dangerouslySetInnerHTML`); labels clarify action/message describe an SOP, not a real executed action.
-- Consumer-only access; no mutation.
-- Tests: human & JSON views show identical `sop_id`/`version` and policy; a `<script>` string appears as literal text (not executed); identity/version present.
+- `SopDetail` (replaces placeholder) fetches the CURRENT published snapshot **once** (`GET /sops/{id}`) and renders it in two views — Human + JSON — from the **same** object (identity + version + `published_at` shown), so a publication during viewing cannot mix versions (FR-053).
+- Human view: title/owner, when-to-use, do-not-use, inputs, rules (conditions + action_ids), actions (+max_amount), boundaries/escalation, customer messages. JSON view: `JSON.stringify(snapshot, null, 2)`.
+- Raw HTML disabled: every authored string renders as a text node (no `dangerouslySetInnerHTML`/`innerHTML`); a `<script>` in a description/message appears as literal text and **no** `<script>` element is created (NFR-020). Labels state actions/messages describe the SOP and are not executed here.
+- Read-only, identical for author and consumer (no mutation in the UI); specific-version retrieval (FR-043) is author-only via `GET /sops/{id}/versions/{v}` (covered in TASK-005). 404 → "No published version yet" (FR-045).
+- Tests: human view shows `sop_id`/`version`/policy; human+JSON expose identical `sop_id`/`version`/policy; authored `<script>` renders as literal text with zero `<script>` elements; 404 message.
 Verification: `npm run lint && npm run typecheck && npm run test && npm run build` green.
-Outcome: PENDING.
+Outcome: PASS — lint clean; `tsc --noEmit` clean; 27/27 tests green (added 4 SopDetail tests); `vite build` OK. Detail is a pure read of one fetched snapshot (HTML-as-text).
 
 ### TASK-010 — make verify/smoke/clean + full verification + VERIFICATION.md
 Status: TODO
