@@ -11,7 +11,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-003 | COMPLETED | DES-004/005/006, FR-030/032/034, PRN-005, NFR-020 | 002 | validation engine (structural/semantic/financial) |
 | TASK-004 | COMPLETED | DES-007/008/010/015, DR-001/003, FR-001/010, PRN-006/007 | 003 | persistence + identity + draft API + seed |
 | TASK-005 | COMPLETED | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
-| TASK-006 | TODO | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
+| TASK-006 | COMPLETED | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | TODO | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
 | TASK-008 | TODO | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
 | TASK-009 | TODO | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
@@ -86,17 +86,18 @@ Verification: `mvn -q test -Dtest='*IT' -DfailIfNoTests=false` (ephemeral PG) gr
 Outcome: PASS — 57 unit + 18 integration tests green (DraftApiIT 6, SeedIT 2, PublicationIT 10). Corroborated fixes: JSONB insert cast; qualified `sop_current` join columns (ambiguous `version`); atomic publish semantics.
 
 ### TASK-006 — Compose stack + deterministic seed + README + demo/down
-Status: TODO
+Status: COMPLETED
 Implements: DES-012/015/017, NFR-001, DR-001, DR-003, PRN-007
 Depends on: TASK-005
 Work:
-- `docker-compose.yml` (backend, db with named volume `sopdemo_pgdata` + healthcheck, frontend nginx + `/api` proxy → backend, frontend health) non-default host ports 18080/13000/15432 overridable, `depends_on: service_healthy`, readiness check (not sleep-based).
-- seed enabled on demo profile; `backend` readiness check.
-- README: URLs, identity selection, five journeys, shutdown, data removal, and the port/identity assumptions.
-- `Makefile` targets `demo`/`down`/`logs`/`clean` (removes the named volume — explicit data deletion) with readiness wait.
-- Verified compose up brings 3 healthy services + seed present + restart retains drafts and publications.
+- `docker-compose.yml` (backend, db with named volume `sopdemo_pgdata` + healthcheck, frontend nginx + `/api` proxy → backend, frontend health) non-default host ports 18080/13000/15432 overridable, `depends_on: service_healthy`, readiness via `up --wait` (no fixed sleeps); overridable `COMPOSE_PROJECT_NAME` for multi-instance runs.
+- seed enabled on the demo profile (`SOPDEMO_SEED_ENABLED=true`); backend readiness via `/healthz`.
+- README: URLs, identity selection, five journeys, the API, shutdown, data removal, and the port/identity assumptions.
+- `Makefile` targets `demo`/`down`/`logs`/`clean` (`clean` = `down -v`, explicit data deletion) with readiness wait.
+- Frontend here is a static nginx placeholder that proxies `/api`; the real Vite/React build replaces it in TASK-007 (same `nginx.conf`/compose wiring).
+- Verified: 3 healthy services; seed draft present (exact spec §3); author save/validate/publish → v1; consumer reads the same snapshot; AND filters; 401/403/400 contract; restart retains draft + publication; `down -v` removes the volume.
 Verification: `docker compose config -q` valid; `make demo` up → 3 healthy; seed retrievable; `docker compose down -v` cleans.
-Outcome: PENDING.
+Outcome: PASS — `docker compose config -q` ok; `make demo` → db/backend/frontend all healthy; seed retrievable and published (v1); author→consumer + status contract verified end-to-end; restart retains; `make clean` removes `sopdemo_pgdata`. Frontend healthcheck uses explicit `127.0.0.1` (alpine `localhost`→`::1` quirk).
 
 ### TASK-007 — Frontend base: identity selector + list/filters + draft list
 Status: TODO
