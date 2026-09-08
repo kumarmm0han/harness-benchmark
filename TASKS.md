@@ -13,7 +13,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-005 | COMPLETED | DES-008/009/011, FR-042/043/045, IR-001, PRN-004/006 | 004 | publication service + REST API + error/CORS |
 | TASK-006 | COMPLETED | DES-012/017, NFR-001, DR-001/003, PRN-007 | 005 | compose stack + seed + README + demo/down |
 | TASK-007 | COMPLETED | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
-| TASK-008 | TODO | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
+| TASK-008 | COMPLETED | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
 | TASK-009 | TODO | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
 | TASK-010 | TODO | DES-016/017, NFR-041, PRN-008 | 009 | make verify/smoke + full verification |
 
@@ -116,16 +116,17 @@ Verification: `npm run lint && npm run typecheck && npm run test && npm run buil
 Outcome: PASS — lint 0 issues; `tsc --noEmit` clean; 16/16 tests green (template 2, api 4, IdentitySelector 3, SopList 7); `vite build` → 36 modules. Fixed test isolation by registering `@testing-library/react` `cleanup()` in `setup.ts` (Vitest runs with globals disabled). `Editor`/`SopDetail` remain placeholders until TASK-008/009.
 
 ### TASK-008 — Editor: template / save / validate / publish
-Status: TODO
-Implements: DES-013/014, FR-010, NFR-050
+Status: COMPLETED
+Implements: DES-013/014, FR-010, FR-034, FR-045, NFR-050
 Depends on: TASK-007
 Work:
-- `Editor` component: textarea, insert-template, save (`PUT /drafts/{id}`), validate (`POST /validate` → issues grouped structural/semantic with paths), publish (`POST /sops/{id}/publish`).
-- Dirty-state guard: publish disabled until saved; unsaved-changes indicator; save errors surface **without discarding** text; publish uses saved revision.
-- Consumer: author controls disabled; text-based status.
-- Tests: insert inserts exact `spec.md` template; dirty guard blocks publish; save-error retains content; validate shows both stages; publish uses revision.
+- `Editor` component (wired into `App` for the editor route): loads the draft by `sop_id`, textarea, **Insert template** (exact `spec.md` §3), Save (`PUT /drafts/{id}`), Validate (`POST /validate`), Publish (`POST /sops/{id}/publish`).
+- Dirty-state guard (baseline vs `ref` of clean text): Publish disabled until the buffer is saved and clean; an "unsaved changes" indicator (text, not color) shows otherwise; Save **never discards** text on error; Publish uses the saved `revision`.
+- Validation issues rendered grouped **structural / semantic** with `code`/`message`/`path`; a persistent failed-publish banner surfaces `publication_failed` (FR-045).
+- Consumer: all author actions disabled + a text notice; backend still authoritative.
+- Tests: insert → exact template; dirty guard blocks publish then re-enables after save; save-error retains content; structural+semantic issues with paths; publish uses the saved revision; consumer gating; failed-publish surfaced without discarding the draft.
 Verification: `npm run lint && npm run typecheck && npm run test && npm run build` green.
-Outcome: PENDING.
+Outcome: PASS — lint clean; `tsc --noEmit` clean; 23/23 tests green (added 7 Editor tests); `vite build` OK. Editor is wired to the real API; `SopDetail` human/JSON views are next (TASK-009).
 
 ### TASK-009 — Human + JSON views (identical snapshot, HTML-as-text)
 Status: TODO

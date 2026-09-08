@@ -51,7 +51,14 @@ export default function App() {
             onOpenDraft={(sopId) => setRoute({ kind: "editor", sopId })}
           />
         )}
-        {route.kind === "editor" && <Editor />}
+        {route.kind === "editor" && (
+          <Editor
+            sopId={route.sopId}
+            client={client}
+            identity={identity}
+            onBack={() => setRoute({ kind: "list" })}
+          />
+        )}
         {route.kind === "detail" && (
           <SopDetail sopId={route.sopId} onBack={() => setRoute({ kind: "list" })} />
         )}
