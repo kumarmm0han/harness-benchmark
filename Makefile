@@ -12,7 +12,8 @@ export COMPOSE_PROJECT_NAME
 SOPDEMO_BACKEND_HOST_PORT ?= 18080
 SOPDEMO_UI_HOST_PORT ?= 13000
 SOPDEMO_DB_HOST_PORT ?= 15432
-export SOPDEMO_BACKEND_HOST_PORT SOPDEMO_UI_HOST_PORT SOPDEMO_DB_HOST_PORT
+SOPDEMO_VERIFY_DB_PORT ?= 15433
+export SOPDEMO_BACKEND_HOST_PORT SOPDEMO_UI_HOST_PORT SOPDEMO_DB_HOST_PORT SOPDEMO_VERIFY_DB_PORT
 
 .DEFAULT_GOAL := help
 
@@ -35,3 +36,23 @@ logs: ## Follow the stack logs
 .PHONY: clean
 clean: ## Stop the stack and remove the named data volume (explicit data deletion)
 	$(COMPOSE) down -v
+
+.PHONY: its
+its: ## Backend integration tests against a throwaway PostgreSQL (ephemeral, removed after)
+	bash scripts/run-its.sh
+
+.PHONY: verify
+verify: ## Full matrix: backend unit + integration (ephemeral PG) + frontend test/lint/typecheck/build
+	@echo "==> [1/3] backend: unit tests"
+	(cd backend && mvn -q -B test)
+	@echo "==> [2/3] backend: integration tests (throwaway PostgreSQL)"
+	bash scripts/run-its.sh
+	@echo "==> [3/3] frontend: test + lint + typecheck + build"
+	(cd frontend && npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm run test && npm run build)
+	@echo "==> verify: ALL GREEN"
+
+.PHONY: smoke
+smoke: ## Start from clean, bring the stack up, run the primary author->consumer journey (exits nonzero on any failure)
+	$(MAKE) clean
+	$(MAKE) demo
+	bash scripts/smoke.sh

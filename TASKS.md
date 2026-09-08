@@ -15,7 +15,7 @@ Each task carries a verification criterion; mark `COMPLETED` only after that cri
 | TASK-007 | COMPLETED | DES-013/014, FR-001/050, NFR-050 | 006 | frontend base: identity/list/filters/drafts |
 | TASK-008 | COMPLETED | DES-013/014, FR-010, NFR-050 | 007 | editor: template/save/validate/publish |
 | TASK-009 | COMPLETED | DES-014, FR-052/053, NFR-020 | 008 | human + JSON views (same snapshot, safe) |
-| TASK-010 | TODO | DES-016/017, NFR-041, PRN-008 | 009 | make verify/smoke + full verification |
+| TASK-010 | COMPLETED | DES-016/017, NFR-041, PRN-008 | 009 | make verify/smoke + full verification |
 
 ---
 
@@ -142,13 +142,13 @@ Verification: `npm run lint && npm run typecheck && npm run test && npm run buil
 Outcome: PASS — lint clean; `tsc --noEmit` clean; 27/27 tests green (added 4 SopDetail tests); `vite build` OK. Detail is a pure read of one fetched snapshot (HTML-as-text).
 
 ### TASK-010 — make verify/smoke/clean + full verification + VERIFICATION.md
-Status: TODO
+Status: COMPLETED
 Implements: DES-016/017, NFR-041, PRN-008
 Depends on: TASK-009
 Work:
-- `Makefile` targets: `verify` (backend unit + integration w/ ephemeral PG + frontend test/typecheck/lint/build), `smoke` (compose up → primary author→consumer journey via curl → assert → nonzero on failure), demo/down/logs/clean.
-- `smoke.sh` asserts the primary flow end-to-end against the live stack.
-- Full `make verify` + `make smoke` run; all green.
-- Author `VERIFICATION.md`: requirement coverage matrix, principle adherence, actual command outcomes, design-to-code consistency, known limitations, assumptions.
+- `Makefile` targets: `verify` + `smoke` added to `demo`/`down`/`logs`/`clean`; `verify` = backend unit (`mvn test`) + integration (`scripts/run-its.sh`) + frontend (`npm ci && lint && typecheck && test && build`); `smoke` = `clean → demo → scripts/smoke.sh`.
+- `scripts/run-its.sh`: starts a throwaway `postgres:16-alpine` (isolated host port 15433), waits on `pg_isready`, runs the `*IT` classes with `SPRING_DATASOURCE_*` set, and removes the container in a `trap`.
+- `scripts/smoke.sh`: the primary author→consumer journey (seed read → validate → publish v1 → AND/invalid-filter → consumer read same snapshot → consumer-mutation 403 → missing-identity 401 → author version read → consumer version 403) via `curl`+`jq`; exits nonzero on any failure.
+- `VERIFICATION.md`: requirement coverage matrix (21/21 PASS), principle adherence, actual command outcomes, design-to-code consistency, known limitations, assumptions.
 Verification: `make verify` exit 0; `make smoke` exit 0; `VERIFICATION.md` present and accurate.
-Outcome: PENDING.
+Outcome: PASS — `make verify` ALL GREEN (exit 0): backend **57 unit tests** (0 failures) + **20 integration tests** against a real PostgreSQL (DraftApiIT 7, SeedIT 3, PublicationIT 10) + frontend **27/27 tests** (lint 0 issues, `tsc --noEmit` clean, `vite build` 37 modules). `make smoke` **12/12 assertions** (exit 0) after `docker compose up --build --wait` left db/backend/frontend all healthy. One smoke-script bug found and fixed along the way: the invalid-filter check must send a valid identity so it reaches the controller (else the `IdentityFilter` correctly returns 401 first).
