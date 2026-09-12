@@ -11,11 +11,12 @@ Verification: required artifacts exist, all requirement IDs are referenced, inpu
 Outcome: first reference assertion caught abbreviated acceptance IDs; explicit mapping added and assertions passed. Frozen inputs unchanged. Java 21/Maven/Node 22/Docker available. Initial artifact commit pushed; this completion correction is committed and pushed before TASK-002.
 
 ## TASK-002 — Safe deterministic compiler
-Status: TODO
+Status: COMPLETED
 Implements: DES-002; FR-020, FR-021, FR-030, FR-032, FR-034, NFR-020; PRN-001, PRN-004, PRN-005.
 Depends on: TASK-001.
 Work: backend build configuration, exact template fixture, parser/compiler and focused hostile-input/semantic tests.
 Verification: Maven compiler unit tests pass; valid fixture maps completely, invalid references and independent financial errors are covered.
+Outcome: `mvn -f backend/pom.xml test -q` passed 8 tests. Initial compile failure used an unavailable SnakeYAML method; removed the unnecessary standard-tag restriction. A boundary-mismatch fixture initially changed both numbers; narrowed it to the boundary and retained the assertion. All tests now pass.
 
 ## TASK-003 — Persistence, authorization and publication API
 Status: TODO
