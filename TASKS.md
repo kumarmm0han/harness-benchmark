@@ -3,11 +3,12 @@
 Working branch: `codex-01-sop-demo`. Remote: `origin` (https://github.com/kumarmm0han/harness-benchmark.git). Frozen inputs are never edited. Completion and delivery are distinct; every task must be committed and successfully pushed before starting its successor.
 
 ## TASK-001 — Architecture, design and plan
-Status: IN_PROGRESS
+Status: COMPLETED
 Implements: ARC-001–006, DES-001–005; PRN-001–009; all requirement IDs indexed in architecture/design.
 Depends on: none.
 Work: inspect frozen inputs and environment; document architecture, technical decisions, assumptions and ordered work.
 Verification: required artifacts exist, all requirement IDs are referenced, input hashes unchanged, branch/remote identified.
+Outcome: first reference assertion caught abbreviated acceptance IDs; explicit mapping added and assertions passed. Frozen inputs unchanged. Java 21/Maven/Node 22/Docker available. Initial artifact commit pushed; this completion correction is committed and pushed before TASK-002.
 
 ## TASK-002 — Safe deterministic compiler
 Status: TODO

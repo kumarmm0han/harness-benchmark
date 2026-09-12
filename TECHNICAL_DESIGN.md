@@ -22,3 +22,5 @@ References: ARC-006; PRN-008, PRN-009; NFR-041; all acceptance journeys.
 
 ## Assumptions
 The source parser accepts CRLF without altering stored bytes, and '- ' / '* ' as plain bullets. Save path IDs use the SOP identifier syntax even when content is incomplete. Failed-publication indicator is a nullable `failed_revision` (draft summaries also expose current_version so the UI can report retained availability). Financial missing-limit issues are semantic, allowing independent discovery of missing escalation. Only API paths require demo identity; service health is public for Compose readiness. No requirements are deferred.
+
+Acceptance mapping: AC-E2E-001 template/save/publish/filter; AC-E2E-002 independent safety errors and correction; AC-E2E-003 identical consumer views and denied mutation; AC-E2E-004 invalid replacement and preserved history; AC-E2E-005 clean startup and restart persistence.
