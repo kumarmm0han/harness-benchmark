@@ -27,11 +27,12 @@ Verification: real PostgreSQL tests pass for permissions, draft persistence, imm
 Outcome: `./scripts/backend-verify.sh -q` exited 0: 8 compiler tests + 4 PostgreSQL integration tests, no failures/skips; executable JAR built. Tests exercised simultaneous publish (200/409), forced post-insert rollback, immutable UPDATE/DELETE rejection, preserved current/history, saved failure markers, stateless preview, seed non-overwrite, CORS and direct permissions. First run exposed Jackson numeric-to-string coercion; explicit coercion rejection fixed it and the full suite passed.
 
 ## TASK-004 — Author and consumer UI
-Status: TODO
+Status: COMPLETED
 Implements: DES-004; FR-010, FR-034, FR-045, FR-050, FR-052, FR-053, NFR-050; PRN-001, PRN-002, PRN-004.
 Depends on: TASK-003.
 Work: React/TypeScript editor, preview, draft discovery, publication, filtered list and shared-snapshot human/JSON views; frontend tests.
 Verification: frontend tests, TypeScript, lint and production build pass; hostile HTML stays text and author controls respect save state.
+Outcome: frontend `npm test` passed 6 tests; `npm run typecheck`, `npm run lint` and `npm run build` all exited 0. Covered template/save/preview/publish, disabled unsaved publication, preserved editor after save failure, reopened failure indication, consumer controls/filtering, same-object human/JSON switching with no fetch, and hostile HTML rendered as text.
 
 ## TASK-005 — Compose delivery and final acceptance verification
 Status: TODO
