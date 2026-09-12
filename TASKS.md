@@ -45,8 +45,10 @@ Plan refinement: TASK-006 audits a clean checkout of the successfully pushed run
 
 
 ## TASK-006 — Clean checkout audit and final verification report
-Status: TODO
+Status: COMPLETED
 Implements: DES-005; NFR-001, NFR-041, AC-E2E-001, AC-E2E-002, AC-E2E-003, AC-E2E-004, AC-E2E-005; PRN-007, PRN-008, PRN-009.
 Depends on: TASK-005 and its confirmed push.
 Work: clone the pushed working branch into a repository-local verification directory; run fresh-volume Compose startup and all acceptance journeys; document requirement/principle coverage, actual outcomes, corrections, assumptions and limitations in VERIFICATION.md.
 Verification: clean checkout starts exactly three healthy services, make verify and make smoke pass, restarts preserve data, frozen-input hashes match, all required artifacts and requirement IDs are covered; commit and push final report/tracker.
+
+TASK-006 outcome: cloned pushed commit c5763c8 into `.verification/checkout`; clean status before/after. With isolated Compose project and fresh named volume, make verify, make demo and make smoke all exited 0: 14 backend tests, 6 frontend tests, 2 browser tests, all type/lint/build checks and both restart assertions passed. Three services recorded healthy in `.verification/clean-services.json`. All 25 requirement/acceptance IDs have PASS coverage rows; all nine principles and required artifacts are indexed. Frozen-input Git comparison and hash/template checks passed. Final report and tracker are committed together and pushed before completion is reported.
