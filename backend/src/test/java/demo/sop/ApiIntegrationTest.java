@@ -30,6 +30,8 @@ class ApiIntegrationTest {
         call(get("/api/v1/sops"),null,null,401);call(get("/api/v1/sops"),"unknown",null,401);
         for(var request:List.of(get("/api/v1/drafts"),get("/api/v1/drafts/X"),get("/api/v1/sops/X/versions/1"),post("/api/v1/validate"),put("/api/v1/drafts/X"),post("/api/v1/sops/X/publish")))call(request,"demo-consumer",null,403);
         author(post("/api/v1/validate"),Map.of("source",42),400);author(post("/api/v1/validate"),Map.of("source","x","extra",true),400);author(post("/api/v1/validate"),Map.of(),400);
+        author(post("/api/v1/validate").contentType("text/plain").content("bad"),null,400);
+        author(post("/api/v1/validate").contentType("application/json").content("{\"source\":\"a\",\"source\":\"b\"}"),null,400);
         author(post("/api/v1/sops/X/publish"),Map.of("revision","1"),400);author(post("/api/v1/sops/X/publish"),Map.of("revision",1.2),400);
         author(get("/api/v1/sops?risk=high"),null,400);author(get("/api/v1/sops?domain=Other"),null,400);
         author(put("/api/v1/drafts/X"),Map.of("source","é".repeat(32769)),413);

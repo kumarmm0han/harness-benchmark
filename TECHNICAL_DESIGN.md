@@ -24,3 +24,9 @@ References: ARC-006; PRN-008, PRN-009; NFR-041; all acceptance journeys.
 The source parser accepts CRLF without altering stored bytes, and '- ' / '* ' as plain bullets. Save path IDs use the SOP identifier syntax even when content is incomplete. Failed-publication indicator is a nullable `failed_revision` (draft summaries also expose current_version so the UI can report retained availability). Financial missing-limit issues are semantic, allowing independent discovery of missing escalation. Only API paths require demo identity; service health is public for Compose readiness. No requirements are deferred.
 
 Acceptance mapping: AC-E2E-001 template/save/publish/filter; AC-E2E-002 independent safety errors and correction; AC-E2E-003 identical consumer views and denied mutation; AC-E2E-004 invalid replacement and preserved history; AC-E2E-005 clean startup and restart persistence.
+
+Final verification refinement: DES-005 also uses a Playwright Chromium test against Compose for the actual editor and consumer journeys. This is test tooling only, not a fourth runtime service. The API smoke restarts Compose twice to verify both failed-candidate state and corrected publication persistence.
+
+Final review corrections (no architecture change): compiler error accumulation retains original collection indexes after an invalid entry; malformed media types receive the required controlled 400 envelope. Boundary tests explicitly count root collections toward YAML depth 20.
+
+Delivery refinement: TASK-005 delivers the verified Compose runtime and acceptance tests; TASK-006 clones that pushed branch inside `.verification/` and performs a clean-checkout/fresh-volume audit before writing VERIFICATION.md. All new verification files and logs stay in the local repository directory.

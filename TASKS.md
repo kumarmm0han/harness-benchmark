@@ -34,9 +34,19 @@ Work: React/TypeScript editor, preview, draft discovery, publication, filtered l
 Verification: frontend tests, TypeScript, lint and production build pass; hostile HTML stays text and author controls respect save state.
 Outcome: frontend `npm test` passed 6 tests; `npm run typecheck`, `npm run lint` and `npm run build` all exited 0. Covered template/save/preview/publish, disabled unsaved publication, preserved editor after save failure, reopened failure indication, consumer controls/filtering, same-object human/JSON switching with no fetch, and hostile HTML rendered as text.
 
-## TASK-005 — Compose delivery and final acceptance verification
-Status: TODO
+## TASK-005 — Compose delivery and acceptance tests
+Status: COMPLETED
 Implements: DES-005; NFR-001, NFR-020, NFR-041, AC-E2E-001–005; PRN-007, PRN-008, PRN-009.
 Depends on: TASK-004.
-Work: three-service Compose, Make commands, smoke/restart journeys, README/API documentation and VERIFICATION.md coverage/evidence.
-Verification: make verify, make demo and make smoke pass; three healthy services; restart preserves data; frozen inputs unchanged; complete coverage recorded.
+Work: three-service Compose, Make commands, smoke/restart journeys and README/API documentation. Final report and exact pushed-checkout audit moved to TASK-006 so the audit can consume committed runtime files.
+Verification: make verify, make demo and make smoke pass; three healthy services; restart preserves data; frozen inputs unchanged.
+Outcome: all three root commands exited 0; 10 compiler + 4 PostgreSQL tests and 6 frontend tests passed, TypeScript/lint/build passed, both Chromium tests passed, and both restart/persistence sequences passed. Logs: `.verification/verify.log`, `.verification/demo.log`, `.verification/smoke.log` (local ignored evidence). First browser run timed out on a label locator; the accessible combobox-role locator fixed the test. Final review corrected collection error indexes and malformed-media-type responses, with regression tests and the entire suite rerun successfully.
+Plan refinement: TASK-006 audits a clean checkout of the successfully pushed runtime and produces final coverage; this keeps the clean-checkout claim tied to delivered source.
+
+
+## TASK-006 — Clean checkout audit and final verification report
+Status: TODO
+Implements: DES-005; NFR-001, NFR-041, AC-E2E-001, AC-E2E-002, AC-E2E-003, AC-E2E-004, AC-E2E-005; PRN-007, PRN-008, PRN-009.
+Depends on: TASK-005 and its confirmed push.
+Work: clone the pushed working branch into a repository-local verification directory; run fresh-volume Compose startup and all acceptance journeys; document requirement/principle coverage, actual outcomes, corrections, assumptions and limitations in VERIFICATION.md.
+Verification: clean checkout starts exactly three healthy services, make verify and make smoke pass, restarts preserve data, frozen-input hashes match, all required artifacts and requirement IDs are covered; commit and push final report/tracker.

@@ -16,4 +16,16 @@ class CompilerTest {
     @Test void semanticUniquenessAndIntent(){assertThat(compiler.compile(template().replace("id: R2","id: R1")).issues()).extracting(Compiler.Issue::code).contains("DUPLICATE_ID");assertThat(compiler.compile(template().replace("intent: refund_duplicate_charge","intent: answer_question")).issues()).extracting(Compiler.Issue::code).contains("REFUND_INTENT");assertThat(compiler.compile(template().replace("    amount: 200","    amount: 201")).issues()).extracting(Compiler.Issue::code).contains("REFUND_ESCALATION");}
     @Test void textIsNeverInterpretedAndIssuesAreSorted(){String html="<script>alert('x')</script>";var r=compiler.compile(template().replace("Refund for Duplicate Charge",html));assertThat(r.valid()).isTrue();assertThat(r.content().get("title")).isEqualTo(html);var invalid=compiler.compile(template().replace("type: number","type: string").replace("domain: Billing","domain: Invalid"));assertThat(invalid.issues()).isSortedAccordingTo(Comparator.comparing(Compiler.Issue::path).thenComparing(Compiler.Issue::code));}
     @Test void byteLimit(){assertThat(compiler.compile("é".repeat(32769)).issues()).extracting(Compiler.Issue::code).contains("SOURCE_TOO_LARGE");}
+    @Test void collectionDepthCountsRootAndPathsRetainSourceIndexes(){
+        String root="title: Refund for Duplicate Charge";
+        assertThat(compiler.compile(template().replace(root,"title: "+"[".repeat(19)+"0"+"]".repeat(19))).issues()).extracting(Compiler.Issue::code).doesNotContain("YAML_INVALID");
+        assertThat(compiler.compile(template().replace(root,"title: "+"[".repeat(20)+"0"+"]".repeat(20))).issues()).extracting(Compiler.Issue::code).contains("YAML_INVALID");
+        var result=compiler.compile(template().replace("- name: refund_amount\n  type: number", "- 42").replace("type: boolean","type: string"));
+        assertThat(result.issues()).anyMatch(i->i.path().equals("inputs[1].type") && i.code().equals("ENUM"));
+    }
+    @Test void supportedNonfinancialAndOtherStructuralFailures(){
+        String answer=template().replace("domain: Billing","domain: Support").replace("risk_level: medium","risk_level: low").replace("intent: refund_duplicate_charge","intent: answer_question").replace("kind: refund","kind: human_assist").replace("  max_amount: 200\n", "").replace("escalation:\n  - action_id: A1\n    input: refund_amount\n    op: gt\n    amount: 200\n    target_action_id: A2", "escalation: []");
+        assertThat(compiler.compile(answer).valid()).isTrue();
+        for(String invalid:List.of(template().replace("- name: duplicate_confirmed", "- name: refund_amount"),template().replace("id: A2", "id: A1"),template().replace("max_amount: 200", "max_amount: true"),template().replace("    target_action_id: A2", "    target_action_id: A1"),template().replace("  conditions:", "  extra: no\n  conditions:"),template().replace("primary: A representative", "primary: &a A representative").replace("escalation: This request needs additional review because it exceeds the refund limit.", "escalation: *a"))) assertThat(compiler.compile(invalid).valid()).isFalse();
+    }
 }

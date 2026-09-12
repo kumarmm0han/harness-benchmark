@@ -16,7 +16,7 @@ public class Errors {
     }
     public static Failure fail(int status,String code,String message){return new Failure(status,code,message,List.of());}
     @ExceptionHandler(Failure.class) ResponseEntity<Body> failure(Failure e){return ResponseEntity.status(e.status).body(e.body);}
-    @ExceptionHandler({HttpMessageNotReadableException.class,MethodArgumentTypeMismatchException.class,HttpRequestMethodNotSupportedException.class}) ResponseEntity<Body> malformed(Exception e){return failure(fail(400,"BAD_REQUEST","Malformed request."));}
+    @ExceptionHandler({HttpMessageNotReadableException.class,MethodArgumentTypeMismatchException.class,HttpRequestMethodNotSupportedException.class,org.springframework.web.HttpMediaTypeNotSupportedException.class}) ResponseEntity<Body> malformed(Exception e){return failure(fail(400,"BAD_REQUEST","Malformed request."));}
     @ExceptionHandler(NoResourceFoundException.class) ResponseEntity<Body> missing(Exception e){return failure(fail(404,"NOT_FOUND","Resource not found."));}
     @ExceptionHandler(Exception.class) ResponseEntity<Body> unexpected(Exception e){return failure(fail(500,"INTERNAL_ERROR","The request could not be completed."));}
 }

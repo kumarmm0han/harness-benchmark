@@ -151,7 +151,7 @@ public class Compiler {
             return result;
         }
         List<?> list(Object v,String p,boolean nonempty){if(!(v instanceof List<?> l)){error("TYPE",p,"Expected a list.");return List.of();}if(nonempty&&l.isEmpty())error("REQUIRED",p,"At least one entry is required.");return l;}
-        List<Map<String,Object>> objects(Object v,String p,Set<String> keys,boolean nonempty){List<?> l=list(v,p,nonempty);List<Map<String,Object>> out=new ArrayList<>();for(int i=0;i<l.size();i++){var m=object(l.get(i),p+"["+i+"]",keys);if(m!=null)out.add(m);}return out;}
+        List<Map<String,Object>> objects(Object v,String p,Set<String> keys,boolean nonempty){List<?> l=list(v,p,nonempty);List<Map<String,Object>> out=new ArrayList<>();for(int i=0;i<l.size();i++){var m=object(l.get(i),p+"["+i+"]",keys);out.add(m==null?new LinkedHashMap<>():m);}return out;}
         void text(Object v,String p){if(!(v instanceof String s)||s.isBlank())error("TEXT",p,"Expected nonempty text.");}
         void id(Object v,String p,String regex){if(!(v instanceof String s)||!Pattern.matches(regex,s))error("IDENTIFIER",p,"Invalid identifier.");}
         void choice(Object v,String p,String... values){if(!(v instanceof String)||!Arrays.asList(values).contains(v))error("ENUM",p,"Expected one of: "+String.join(", ",values)+".");}
