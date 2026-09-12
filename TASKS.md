@@ -19,11 +19,12 @@ Verification: Maven compiler unit tests pass; valid fixture maps completely, inv
 Outcome: `mvn -f backend/pom.xml test -q` passed 8 tests. Initial compile failure used an unavailable SnakeYAML method; removed the unnecessary standard-tag restriction. A boundary-mismatch fixture initially changed both numbers; narrowed it to the boundary and retained the assertion. All tests now pass.
 
 ## TASK-003 — Persistence, authorization and publication API
-Status: TODO
+Status: COMPLETED
 Implements: DES-001, DES-003; FR-001, FR-010, FR-042, FR-043, FR-045, FR-050, IR-001, DR-001, DR-003; PRN-003, PRN-004, PRN-006, PRN-007.
 Depends on: TASK-002.
 Work: migrations, seed, API, identity checks, transaction coordination and PostgreSQL integration tests.
 Verification: real PostgreSQL tests pass for permissions, draft persistence, immutable history, concurrent publication and invalid replacement; backend package builds.
+Outcome: `./scripts/backend-verify.sh -q` exited 0: 8 compiler tests + 4 PostgreSQL integration tests, no failures/skips; executable JAR built. Tests exercised simultaneous publish (200/409), forced post-insert rollback, immutable UPDATE/DELETE rejection, preserved current/history, saved failure markers, stateless preview, seed non-overwrite, CORS and direct permissions. First run exposed Jackson numeric-to-string coercion; explicit coercion rejection fixed it and the full suite passed.
 
 ## TASK-004 — Author and consumer UI
 Status: TODO
